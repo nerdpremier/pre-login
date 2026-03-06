@@ -3,29 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Secure Portal</title>
+    <title>Register | Secure Portal</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <div class="login-card">
             <div class="header">
-                <div class="logo">🛡️</div>
-                <h1>Welcome Back</h1>
-                <p>Verify identity & safety</p>
+                <h1>Create Account</h1>
+                <p>Join our secure network</p>
             </div>
             <div id="status-box"></div>
             <div class="input-group">
                 <label>Username</label>
-                <input type="text" id="username" placeholder="Username" required>
+                <input type="text" id="username" placeholder="Pick a username" required>
             </div>
             <div class="input-group">
                 <label>Password</label>
-                <input type="password" id="password" placeholder="••••••••" required>
+                <input type="password" id="password" placeholder="Create a password" required>
             </div>
             <div class="button-group">
-                <button onclick="preLoginCheck()">Sign In</button>
-                <a href="register.html" class="link-text">Don't have an account? Register</a>
+                <button onclick="handleRegister()">Register</button>
+                <a href="index.html" class="link-text">Already have an account? Login</a>
             </div>
         </div>
     </div>
