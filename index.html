@@ -1,23 +1,59 @@
-<div class="login-card">
-    <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
-    <h2>Welcome Back</h2>
-    <p class="subtitle">Enter your credentials to access your secure dashboard.</p>
-    
-    <div id="status-box" class="status-box"></div>
-
-    <div class="input-group">
-        <label>Username</label>
-        <input type="text" id="username" placeholder="Enter your username" autocomplete="off">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Login | Access Dashboard</title>
+    <style>
+        /* CSS แบบฝังในไฟล์เพื่อให้แน่ใจว่าความสวยมาแน่นอน */
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+        :root { --primary: #3b82f6; --bg: #020617; --card: rgba(15, 23, 42, 0.8); }
+        body {
+            margin: 0; font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at 50% -20%, #1e293b, var(--bg));
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #f8fafc;
+        }
+        .login-card {
+            background: var(--card); backdrop-filter: blur(20px); border-radius: 32px;
+            padding: 3rem 2.5rem; width: 100%; max-width: 400px; text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+        h2 { font-size: 2rem; margin-bottom: 0.5rem; background: linear-gradient(to bottom, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { color: #94a3b8; font-size: 0.95rem; margin-bottom: 2rem; }
+        .input-group { text-align: left; margin-bottom: 1.25rem; }
+        label { display: block; font-size: 0.85rem; color: #94a3b8; margin: 0 0 0.5rem 0.5rem; }
+        input {
+            width: 100%; padding: 14px 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03); color: white; font-size: 1rem; box-sizing: border-box; transition: 0.3s;
+        }
+        input:focus { outline: none; border-color: var(--primary); background: rgba(255, 255, 255, 0.07); }
+        button {
+            width: 100%; padding: 16px; border-radius: 16px; border: none; background: var(--primary);
+            color: white; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 1rem;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4); }
+        .status-box { display: none; padding: 12px; border-radius: 12px; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .footer { margin-top: 2rem; font-size: 0.9rem; color: #94a3b8; }
+        .footer a { color: var(--primary); text-decoration: none; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Enter your credentials to access your secure dashboard.</p>
+        <div id="status-box" class="status-box"></div>
+        <div class="input-group">
+            <label>Username</label>
+            <input type="text" id="username" placeholder="Enter your username">
+        </div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+        <button onclick="preLoginCheck()">Sign In to Account</button>
+        <div class="footer">New here? <a href="register.html">Create an account</a></div>
     </div>
-
-    <div class="input-group">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="••••••••">
-    </div>
-
-    <button onclick="preLoginCheck()">Sign In to Account</button>
-    
-    <div class="footer">
-        New to our platform? <a href="register.html">Create an account</a>
-    </div>
-</div>
+    <script src="script.js"></script>
+</body>
+</html>

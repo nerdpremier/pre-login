@@ -1,28 +1,23 @@
-<div class="login-card">
-    <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
-    <h2>Get Started</h2>
-    <p class="subtitle">Create a secure account using English characters and strong password.</p>
-    
-    <div id="status-box" class="status-box"></div>
-
-    <div class="input-group">
-        <label>Full Username</label>
-        <input type="text" id="username" placeholder="e.g. jason_secure">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Us | Create Account</title>
+    <style>/* ใช้ CSS เดียวกันกับด้านบนได้เลยครับ */</style>
+</head>
+<body>
+    <div class="login-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+        <h2>Get Started</h2>
+        <p class="subtitle">Join our secure network in seconds.</p>
+        <div id="status-box" class="status-box"></div>
+        <div class="input-group"><label>Username</label><input type="text" id="username" placeholder="English & Numbers"></div>
+        <div class="input-group"><label>Email Address</label><input type="email" id="email" placeholder="name@example.com"></div>
+        <div class="input-group"><label>Secure Password</label><input type="password" id="password" placeholder="8+ Characters"></div>
+        <button onclick="handleRegister()">Create Free Account</button>
+        <div class="footer">Have an account? <a href="index.html">Sign In</a></div>
     </div>
-
-    <div class="input-group">
-        <label>Email Address</label>
-        <input type="email" id="email" placeholder="name@example.com">
-    </div>
-
-    <div class="input-group">
-        <label>Secure Password</label>
-        <input type="password" id="password" placeholder="At least 8 characters">
-    </div>
-
-    <button onclick="handleRegister()">Create Free Account</button>
-    
-    <div class="footer">
-        Already have an account? <a href="index.html">Sign In</a>
-    </div>
-</div>
+    <script src="script.js"></script>
+</body>
+</html>
