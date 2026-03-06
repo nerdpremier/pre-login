@@ -1,10 +1,27 @@
-<div class="login-card">
-    <h2>Create Account</h2>
-    <p class="subtitle">Use English characters for security</p>
-    <div id="status-box" class="status-box"></div>
-    <input type="text" id="username" placeholder="Username (English Only)">
-    <input type="email" id="email" placeholder="Email (for MFA)">
-    <input type="password" id="password" placeholder="Strong Password">
-    <button onclick="handleRegister()">Register</button>
-    <div class="footer">Back to <a href="index.html">Login</a></div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security | Register</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-card">
+        <h2>Create Account</h2>
+        <p class="subtitle">Join our secure network today</p>
+        
+        <div id="status-box" class="status-box"></div>
+
+        <input type="text" id="username" placeholder="Username (English Only)">
+        <input type="email" id="email" placeholder="Email Address">
+        <input type="password" id="password" placeholder="Strong Password">
+        
+        <button onclick="handleRegister()">Register Account</button>
+        
+        <div class="footer">
+            Already registered? <a href="index.html">Sign in here</a>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

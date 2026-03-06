@@ -1,12 +1,145 @@
-:root { --bg: #0f172a; --card: #1e293b; --primary: #3b82f6; --success: #22c55e; --danger: #ef4444; --text: #f8fafc; }
-body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-.login-card { background: var(--card); width: 100%; max-width: 400px; padding: 2.5rem; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid #334155; }
-h2 { text-align: center; margin-bottom: 0.5rem; }
-.subtitle { text-align: center; color: #94a3b8; font-size: 0.85rem; margin-bottom: 2rem; }
-input { width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; outline: none; transition: 0.3s; }
-input:focus { border-color: var(--primary); }
-button { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer; transition: 0.3s; }
-button:hover { background: #2563eb; transform: translateY(-1px); }
-.status-box { display: none; padding: 12px; border-radius: 10px; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: center; }
-.footer { text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: #94a3b8; }
-.footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+:root {
+    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --primary: #3b82f6;
+    --primary-glow: rgba(59, 130, 246, 0.5);
+    --success: #10b981;
+    --danger: #ef4444;
+    --text: #f8fafc;
+}
+
+body {
+    background: var(--bg-gradient);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    overflow: hidden;
+}
+
+/* เอฟเฟกต์พื้นหลังเป็นวงกลมฟุ้งๆ */
+body::before {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    background: var(--primary-glow);
+    filter: blur(150px);
+    border-radius: 50%;
+    z-index: -1;
+    top: 20%; left: 20%;
+}
+
+.login-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    width: 100%;
+    max-width: 380px;
+    padding: 3rem 2.5rem;
+    border-radius: 24px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.025em;
+    text-align: center;
+}
+
+.subtitle {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    margin-bottom: 2.5rem;
+}
+
+.input-container {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+button:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+button:active { transform: translateY(0); }
+
+.status-box {
+    display: none;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+    text-align: center;
+    border: 1px solid transparent;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.footer {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 0.875rem;
+    color: #94a3b8;
+}
+
+.footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.footer a:hover { color: #60a5fa; }
