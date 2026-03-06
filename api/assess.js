@@ -10,19 +10,15 @@ export default async function handler(req, res) {
         const { username, device, fingerprint } = req.body;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-        // 1. ตรวจสอบว่ามี User หรือไม่ และดึง Fingerprint ที่เคยบันทึกไว้
+        // 1. ตรวจสอบประวัติ User ใน DB
         const userRes = await client.query("SELECT authorized_fingerprint FROM users WHERE username = $1", [username]);
-        
-        // ถ้าไม่มี User ในระบบ ไม่ต้องบันทึก Log ลง DB (ประหยัดพื้นที่)
-        if (userRes.rows.length === 0) {
-            return res.status(200).json({ risk_level: "LOW", logId: null });
-        }
+        if (userRes.rows.length === 0) return res.status(200).json({ risk_level: "LOW", logId: null });
 
         const savedFp = userRes.rows[0].authorized_fingerprint;
-        // Mismatch = เคยมีประวัติเครื่องหลักแล้ว แต่เครื่องปัจจุบันไม่ตรง
+        // เช็คความต่าง: ถ้าเคยมีประวัติแล้วแต่ FP ปัจจุบันไม่ตรง = TRUE
         const fp_mismatch = (savedFp && savedFp !== fingerprint) ? true : false;
 
-        // 2. ลบ Log เก่า 15 นาที และหา Record เดิมเพื่อรวมกลุ่ม (Aggregation)
+        // 2. รวมกลุ่ม Log (Aggregation)
         await client.query("DELETE FROM login_risks WHERE updated_at < NOW() - INTERVAL '15 minutes'");
         const existing = await client.query(
             "SELECT id, attempts FROM login_risks WHERE username = $1 AND ip_address = $2 AND is_success = FALSE LIMIT 1",
@@ -38,8 +34,8 @@ export default async function handler(req, res) {
         // 3. คำนวณคะแนน Scale 1.0
         let score = 0.1;
         if (attempts >= 2 && attempts < 4) score = 0.3;
-        else if (attempts >= 4) score = 0.6; 
-        if (fp_mismatch) score += 0.4;
+        else if (attempts >= 4) score = 0.6;
+        if (fp_mismatch) score += 0.4; // เครื่องแปลกปลอมบวก 0.4
 
         const finalScore = Math.min(score, 1.0);
         const level = finalScore >= 0.7 ? "HIGH" : (finalScore >= 0.4 ? "MEDIUM" : "LOW");
@@ -57,7 +53,6 @@ export default async function handler(req, res) {
             );
             logId = result.rows[0].id;
         }
-
         res.status(200).json({ risk_level: level, logId });
     } catch (err) { res.status(500).json({ error: err.message }); }
     finally { await client.end(); }

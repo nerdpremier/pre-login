@@ -6,10 +6,18 @@ function updateStatus(type, msg) {
     box.style.color = type === 'danger' ? '#f87171' : (type === 'success' ? '#4ade80' : 'white');
 }
 
-// สร้าง Fingerprint (ลายนิ้วมือเครื่อง)
-function getFp() {
-    const device = `${navigator.platform} | ${navigator.userAgent}`;
-    return btoa(device).substring(0, 16);
+// ฟังก์ชันสร้างลายนิ้วมือระดับ Hardware
+function getDetailedFp() {
+    const info = [
+        navigator.platform,
+        navigator.userAgent,
+        screen.width + "x" + screen.height, // ความละเอียดหน้าจอ
+        new Date().getTimezoneOffset(),     // เขตเวลา
+        navigator.language,                 // ภาษาเครื่อง
+        navigator.hardwareConcurrency || 0, // จำนวน CPU Core
+        screen.colorDepth                   // ความลึกของสีหน้าจอ
+    ];
+    return btoa(info.join("|")).substring(0, 32); // เข้ารหัสยาว 32 ตัวเพื่อให้ค่าต่างกันชัดเจน
 }
 
 async function preLoginCheck() {
@@ -17,34 +25,38 @@ async function preLoginCheck() {
     const password = document.getElementById('password').value.trim();
     if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
 
-    updateStatus('loading', "🔍 กำลังตรวจสอบความปลอดภัย...");
+    updateStatus('loading', "🔍 ตรวจสอบความปลอดภัยเครื่อง...");
     try {
-        const fingerprint = getFp();
+        const fingerprint = getDetailedFp();
+        const device = `${navigator.platform} | ${screen.width}x${screen.height} | CPU:${navigator.hardwareConcurrency}`;
 
         // 1. ประเมินความเสี่ยง
         const riskRes = await fetch('/api/assess', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, device: navigator.userAgent, fingerprint })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, device, fingerprint })
         });
         const { risk_level, logId } = await riskRes.json();
 
-        if (risk_level === "HIGH") return updateStatus('danger', "🚨 ระงับการเข้าถึงชั่วคราว (15 นาที)");
+        if (risk_level === "HIGH") return updateStatus('danger', "🚨 บล็อกการเข้าถึงเนื่องจากความเสี่ยงสูง");
 
         // 2. ล็อกอิน
         const authRes = await fetch('/api/auth', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'login', username, password, fingerprint })
         });
         const isOk = authRes.ok;
 
-        // 3. ส่งผลกลับไปอัปเดต ID เดิม
+        // 3. บันทึกผล Success/Fail
         await fetch('/api/update-risk', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ logId, success: isOk })
         });
 
         if (isOk) {
-            updateStatus('success', "✅ ยินดีต้อนรับ!");
+            updateStatus('success', "✅ เข้าสู่ระบบสำเร็จ!");
             setTimeout(() => window.location.href = 'welcome.html', 1000);
         } else {
             updateStatus('danger', "❌ รหัสผ่านไม่ถูกต้อง");
@@ -57,16 +69,11 @@ async function handleRegister() {
     const password = document.getElementById('password').value.trim();
     if (!username || !password) return updateStatus('danger', "⚠️ กรอกข้อมูลไม่ครบ");
 
-    updateStatus('loading', "⏳ กำลังสร้างบัญชี...");
     const res = await fetch('/api/auth', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'register', username, password })
     });
-
-    if (res.ok) {
-        alert("สมัครสมาชิกสำเร็จ!");
-        window.location.href = 'index.html';
-    } else {
-        updateStatus('danger', "❌ ชื่อนี้ถูกใช้ไปแล้ว หรือระบบขัดข้อง");
-    }
+    if (res.ok) { alert("สมัครสำเร็จ!"); window.location.href = 'index.html'; }
+    else updateStatus('danger', "❌ ชื่อนี้ถูกใช้แล้ว");
 }
