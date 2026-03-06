@@ -1,28 +1,20 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<title>Login</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Secure System</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-<div class="login-card">
-
-<h2>Login</h2>
-
-<input id="username" placeholder="Username">
-
-<input id="password" type="password" placeholder="Password">
-
-<button onclick="login()">Login</button>
-
-<a href="register.html">Register</a>
-
-</div>
-
-<script src="script.js"></script>
-
+    <div class="login-card">
+        <h2>เข้าสู่ระบบ</h2>
+        <div id="status-box" class="status-box"></div>
+        <input type="text" id="username" placeholder="Username (English)">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="preLoginCheck()" class="btn-primary">Login</button>
+        <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>

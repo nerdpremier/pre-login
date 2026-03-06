@@ -1,29 +1,18 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<title>MFA</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>MFA Verification</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-<div class="login-card">
-
-<h2>MFA Verification</h2>
-
-<input id="mfa-code" placeholder="Enter MFA Code">
-
-<label>
-<input type="checkbox" id="remember-device">
-จำอุปกรณ์นี้
-</label>
-
-<button onclick="verifyMFA()">Verify</button>
-
-</div>
-
-<script src="script.js"></script>
-
+    <div class="login-card">
+        <h2>🛡️ ยืนยันตัวตน</h2>
+        <p>กรุณากรอกรหัส 6 หลักที่ส่งไปยังอีเมลของคุณ</p>
+        <div id="status-box" class="status-box"></div>
+        <input type="text" id="mfa-code" placeholder="000000" maxlength="6" style="text-align:center; font-size:24px; letter-spacing:10px;">
+        <button onclick="verifyMFA()" class="btn-primary">ยืนยันรหัส</button>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
