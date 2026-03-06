@@ -139,3 +139,14 @@ async function verifyMFA() {
         updateStatus('danger', "❌ ระบบขัดข้อง");
     }
 }
+
+document.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        const mfaInput = document.getElementById('mfa-code');
+        if (mfaInput) {
+            verifyMFA();
+        } else {
+            preLoginCheck();
+        }
+    }
+});
