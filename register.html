@@ -1,33 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
-        :root { --primary: #3b82f6; --bg: #020617; }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: radial-gradient(circle at 50% -20%, #1e293b, var(--bg)); display: flex; justify-content: center; align-items: center; min-height: 100vh; color: white; }
-        .card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); border-radius: 28px; padding: 3rem; width: 100%; max-width: 380px; text-align: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-        h2 { margin: 0 0 1rem; font-size: 2rem; background: linear-gradient(to bottom, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        input { width: 100%; padding: 14px; margin-bottom: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: white; box-sizing: border-box; font-size: 1rem; }
-        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--primary); color: white; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
-        #status-box { display: none; padding: 12px; border-radius: 10px; margin-bottom: 1.5rem; font-size: 0.85rem; font-weight: 600; }
-        .footer { margin-top: 1.5rem; font-size: 0.85rem; color: #94a3b8; }
-        a { color: var(--primary); text-decoration: none; font-weight: 600; }
-    </style>
+    <title>สมัครสมาชิก - Security System</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="card">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
-        <h2>Join Us</h2>
-        <div id="status-box"></div>
-        <input type="text" id="username" placeholder="Username (English)">
-        <input type="email" id="email" placeholder="Email (for OTP)">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="handleRegister()">Create Account</button>
-        <div class="footer">Already have an account? <a href="index.html">Login</a></div>
+    <div class="container">
+        <div class="login-card">
+            <h2>สร้างบัญชีใหม่</h2>
+            <p class="subtitle">สมัครสมาชิกเพื่อเริ่มต้นใช้งานระบบ</p>
+            
+            <div id="status-box" class="status-box"></div>
+
+            <div class="input-group">
+                <label for="username">ชื่อผู้ใช้งาน</label>
+                <input type="text" id="username" placeholder="ตั้งชื่อผู้ใช้" required>
+            </div>
+
+            <div class="input-group">
+                <label for="password">รหัสผ่าน</label>
+                <input type="password" id="password" placeholder="ตั้งรหัสผ่าน" required>
+            </div>
+
+            <button onclick="handleRegister()" class="btn-primary">ยืนยันการสมัคร</button>
+            
+            <p class="footer-text">
+                มีบัญชีอยู่แล้ว? <a href="index.html">กลับไปหน้าล็อกอิน</a>
+            </p>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

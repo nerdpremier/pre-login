@@ -1,51 +1,55 @@
 import pkg from 'pg';
-import nodemailer from 'nodemailer';
 const { Client } = pkg;
 
 export default async function handler(req, res) {
+    if (req.method !== 'POST') return res.status(405).send();
     const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+
     try {
         await client.connect();
-        const { username, fingerprint } = req.body;
+        const { username, device, fingerprint } = req.body;
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-        const userRes = await client.query("SELECT email, authorized_fingerprint FROM users WHERE username = $1", [username]);
-        
-        // ถ้าไม่เจอ User ให้บันทึกเป็น Unknown และจบงาน
-        if (userRes.rows.length === 0) {
-            await client.query("INSERT INTO login_risks (username, current_fingerprint, risk_level) VALUES ($1, $2, 'UNKNOWN')", [username, fingerprint]);
-            return res.status(200).json({ risk_level: "LOW" });
-        }
+        const userRes = await client.query("SELECT authorized_fingerprint FROM users WHERE username = $1", [username]);
+        if (userRes.rows.length === 0) return res.status(200).json({ risk_level: "LOW", logId: null });
 
-        const { email, authorized_fingerprint } = userRes.rows[0];
-        const fp_match = (authorized_fingerprint === fingerprint);
-        let mfa = null; 
-        let risk = fp_match || authorized_fingerprint === null ? "LOW" : "MEDIUM";
+        const savedFp = userRes.rows[0].authorized_fingerprint;
+        const fp_match = savedFp ? (savedFp === fingerprint) : true;
 
-        // ถ้าความเสี่ยงกลาง (เปลี่ยนเครื่อง) ให้สร้างรหัส MFA และส่งเมล
-        if (risk === "MEDIUM") {
-            mfa = Math.floor(100000 + Math.random() * 900000).toString();
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-            });
-            await transporter.sendMail({
-                from: `"Secure System" <${process.env.EMAIL_USER}>`,
-                to: email,
-                subject: `Login Code: ${mfa}`,
-                html: `<h1>Your Code: ${mfa}</h1>`
-            });
-        }
-
-        // 📝 บันทึก Log ทุกครั้งลงฐานข้อมูล
-        const logResult = await client.query(
-            "INSERT INTO login_risks (username, current_fingerprint, mfa_code, risk_level) VALUES ($1, $2, $3, $4) RETURNING id",
-            [username, fingerprint, mfa, risk]
+        await client.query("DELETE FROM login_risks WHERE updated_at < NOW() - INTERVAL '15 minutes'");
+        const existing = await client.query(
+            "SELECT id, attempts FROM login_risks WHERE username = $1 AND ip_address = $2 AND is_success = FALSE LIMIT 1",
+            [username, ip]
         );
 
-        res.status(200).json({ risk_level: risk, logId: logResult.rows[0].id });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    } finally {
-        await client.end();
-    }
+        let attempts = 1, logId = null;
+        if (existing.rows.length > 0) {
+            attempts = existing.rows[0].attempts + 1;
+            logId = existing.rows[0].id;
+        }
+
+        let score = 0.1;
+        if (attempts >= 2 && attempts < 4) score = 0.3;
+        else if (attempts >= 4) score = 0.6;
+        if (fp_match === false) score += 0.4;
+
+        const finalScore = Math.min(score, 1.0);
+        const level = finalScore >= 0.7 ? "HIGH" : (finalScore >= 0.4 ? "MEDIUM" : "LOW");
+
+        if (logId) {
+            await client.query(
+                "UPDATE login_risks SET attempts = $1, risk_score = $2, risk_level = $3, fingerprint_match = $4, current_fingerprint = $5, updated_at = NOW() WHERE id = $6",
+                [attempts, finalScore, level, fp_match, fingerprint, logId]
+            );
+        } else {
+            const result = await client.query(
+                `INSERT INTO login_risks (username, ip_address, device_info, current_fingerprint, fingerprint_match, attempts, risk_score, risk_level) 
+                 VALUES ($1, $2, $3, $4, $5, 1, $6, $7) RETURNING id`,
+                [username, ip, device, fingerprint, fp_match, finalScore, level]
+            );
+            logId = result.rows[0].id;
+        }
+        res.status(200).json({ risk_level: level, logId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+    finally { await client.end(); }
 }
