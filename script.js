@@ -99,23 +99,29 @@ async function preLoginCheck() {
 }
 
 // ----------------- ยืนยันรหัส MFA -----------------
-async function verifyMFA() {
-    const code = document.getElementById('mfa-code')?.value.trim();
-    const logId = new URLSearchParams(window.location.search).get('logId');
-    if (!code || !logId) return updateStatus('danger', "⚠️ ข้อมูลไม่ครบถ้วน");
+// ในฟังก์ชัน preLoginCheck หลังเช็ค authRes.ok
+if (authData.mfa_required) {
+    const remember = document.getElementById('remember-device').checked;
+    // ส่ง logId และ remember พ่วงไปที่หน้ากรอก OTP
+    window.location.href = `mfa.html?logId=${riskData.logId}&remember=${remember}`;
+}
 
-    updateStatus('loading', "⏳ กำลังตรวจสอบรหัส...");
-    try {
-        const res = await fetch('/api/verify-mfa', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logId, code })
-        });
-        if (res.ok) {
-            updateStatus('success', "✅ ยืนยันตัวตนสำเร็จ!");
-            setTimeout(() => window.location.href = 'welcome.html', 1000);
-        } else {
-            updateStatus('danger', "❌ รหัสไม่ถูกต้อง");
-        }
-    } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
+// ในฟังก์ชัน verifyMFA (ที่อยู่ในหน้า mfa.html)
+async function verifyMFA() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const logId = urlParams.get('logId');
+    const remember = urlParams.get('remember'); // ดึงค่าจาก URL
+    const code = document.getElementById('mfa-code').value;
+
+    const res = await fetch('/api/verify-mfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId, code, remember }) // ส่งครบ 3 อย่าง
+    });
+
+    if (res.ok) {
+        window.location.href = 'welcome.html';
+    } else {
+        alert("รหัสไม่ถูกต้อง");
+    }
 }
