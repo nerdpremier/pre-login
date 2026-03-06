@@ -1,9 +1,30 @@
-<div class="login-card">
-    <h2>Sign In</h2>
-    <p class="subtitle">Enter your details to access account</p>
-    <div id="status-box" class="status-box"></div>
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <button onclick="preLoginCheck()">Sign In</button>
-    <div class="footer">New device? <a href="register.html">Register</a></div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Secure Access | Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-card">
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Securely sign in to your account</p>
+        
+        <div id="status-box" class="status-box"></div>
+
+        <div class="input-container">
+            <input type="text" id="username" placeholder="Username" autocomplete="off">
+        </div>
+        <div class="input-container">
+            <input type="password" id="password" placeholder="Password">
+        </div>
+        
+        <button onclick="preLoginCheck()">Sign In</button>
+        
+        <div class="footer">
+            New device? <a href="register.html">Create an account</a>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
