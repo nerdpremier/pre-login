@@ -1,8 +1,7 @@
 function updateStatus(type, msg) {
     const box = document.getElementById('status-box');
     if (!box) return;
-    box.style.display = 'block'; 
-    box.innerText = msg;
+    box.style.display = 'block'; box.innerText = msg;
     box.style.background = type === 'danger' ? 'rgba(239,68,68,0.2)' : (type === 'success' ? 'rgba(34,197,94,0.2)' : '#334155');
     box.style.color = type === 'danger' ? '#f87171' : (type === 'success' ? '#4ade80' : 'white');
 }
@@ -51,8 +50,6 @@ async function handleRegister() {
 async function preLoginCheck() {
     const username = document.getElementById('username')?.value.trim();
     const password = document.getElementById('password')?.value.trim();
-    const remember = document.getElementById('remember-device')?.checked; // ดึงค่า Checkbox
-
     if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
 
     updateStatus('loading', "🔍 กำลังตรวจสอบอุปกรณ์...");
@@ -60,7 +57,7 @@ async function preLoginCheck() {
         const fingerprint = getSecureFp();
         const device = `Screen:${screen.width}x${screen.height} | CPU:${navigator.hardwareConcurrency}`;
 
-        // 1. ประเมินความเสี่ยงเบื้องต้น (เพื่อเอา logId)
+        // 1. ประเมินความเสี่ยง
         const riskRes = await fetch('/api/assess', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -68,85 +65,57 @@ async function preLoginCheck() {
         });
         const riskData = await riskRes.json();
 
-        if (riskData.risk_level === "HIGH") {
-            return updateStatus('danger', "🚨 ความเสี่ยงสูงเกินไป ระงับการเข้าถึงชั่วคราว");
-        }
+        if (riskData.risk_level === "HIGH") return updateStatus('danger', "🚨 ความเสี่ยงสูง ระงับการเข้าถึง");
         
-        // 2. ส่งไปเช็ครหัสผ่านที่ /api/auth (ด่านสำคัญ)
+        // 2. ถ้าเสี่ยงปานกลาง ไปหน้า MFA
+        if (riskData.risk_level === "MEDIUM") {
+            updateStatus('success', "🛡️ อุปกรณ์ใหม่! กรุณายืนยันรหัสในอีเมล...");
+            setTimeout(() => window.location.href = `mfa.html?logId=${riskData.logId}`, 1500);
+            return;
+        }
+
+        // 3. ถ้าปกติ ล็อกอินเลย
         const authRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                action: 'login', 
-                username, 
-                password, 
-                fingerprint,
-                logId: riskData.logId,
-                risk_level: riskData.risk_level,
-                remember: remember
-            })
+            body: JSON.stringify({ action: 'login', username, password, fingerprint })
+        });
+        const isOk = authRes.ok;
+
+        // อัปเดต Log ว่าล็อกอินสำเร็จหรือไม่
+        await fetch('/api/update-risk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logId: riskData.logId, success: isOk })
         });
 
-        const authData = await authRes.json();
-
-        if (authRes.ok) {
-            // ถ้าหลังบ้านบอกว่าต้องทำ MFA
-            if (authData.mfa_required) {
-                updateStatus('success', "🛡️ ตรวจพบอุปกรณ์ใหม่! กรุณายืนยันรหัสในอีเมล...");
-                setTimeout(() => {
-                    window.location.href = `mfa.html?logId=${riskData.logId}&remember=${remember}`;
-                }, 1500);
-            } else {
-                // ล็อกอินสำเร็จ (เครื่องเดิม)
-                updateStatus('success', "✅ ล็อกอินสำเร็จ!");
-                setTimeout(() => window.location.href = 'welcome.html', 1000);
-            }
+        if (isOk) {
+            updateStatus('success', "✅ ล็อกอินสำเร็จ!");
+            setTimeout(() => window.location.href = 'welcome.html', 1000);
         } else {
-            updateStatus('danger', `❌ ${authData.error || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"}`);
+            updateStatus('danger', "❌ ชื่อผู้ใช้หรือรหัสผ่านผิด");
         }
-
-    } catch (e) { 
-        console.error(e);
-        updateStatus('danger', "❌ ระบบขัดข้อง"); 
-    }
+    } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
 }
 
-// ----------------- ยืนยันรหัส MFA (ใช้ในหน้า mfa.html) -----------------
+// ----------------- ยืนยันรหัส MFA -----------------
 async function verifyMFA() {
     const code = document.getElementById('mfa-code')?.value.trim();
-    const urlParams = new URLSearchParams(window.location.search);
-    const logId = urlParams.get('logId');
-    const remember = urlParams.get('remember');
-
-    if (!code || code.length !== 6) return updateStatus('danger', "⚠️ กรุณากรอกรหัส 6 หลัก");
+    const logId = new URLSearchParams(window.location.search).get('logId');
+    if (!code || !logId) return updateStatus('danger', "⚠️ ข้อมูลไม่ครบถ้วน");
 
     updateStatus('loading', "⏳ กำลังตรวจสอบรหัส...");
     try {
         const res = await fetch('/api/verify-mfa', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logId, code, remember })
+            body: JSON.stringify({ logId, code })
         });
-
         if (res.ok) {
-            updateStatus('success', "✅ ยืนยันสำเร็จ! กำลังเข้าสู่หน้าหลัก...");
-            setTimeout(() => window.location.href = 'welcome.html', 1500);
+            updateStatus('success', "✅ ยืนยันตัวตนสำเร็จ!");
+            setTimeout(() => window.location.href = 'welcome.html', 1000);
         } else {
-            const data = await res.json();
-            updateStatus('danger', `❌ ${data.error || "รหัสไม่ถูกต้อง"}`);
+            updateStatus('danger', "❌ รหัสไม่ถูกต้อง");
         }
-    } catch (e) {
-        updateStatus('danger', "❌ ระบบขัดข้อง");
-    }
+    } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
 }
-
-document.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        const mfaInput = document.getElementById('mfa-code');
-        if (mfaInput) {
-            verifyMFA();
-        } else {
-            preLoginCheck();
-        }
-    }
-});
