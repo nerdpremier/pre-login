@@ -3,22 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Security System</title>
+    <title>Login - Secure System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="login-card">
         <h2>เข้าสู่ระบบ</h2>
-        <div id="status-box" style="display:none; padding:10px; border-radius:8px; margin-bottom:15px; font-size:14px;"></div>
-        <input type="text" id="username" placeholder="Username">
+        <div id="status-box" class="status-box"></div>
+        <input type="text" id="username" placeholder="Username (English)">
         <input type="password" id="password" placeholder="Password">
         <button onclick="preLoginCheck()" class="btn-primary">Login</button>
-
-        <div id="mfa-section" style="display:none; margin-top:18px;">
-            <input type="text" id="mfa-code" placeholder="กรอกรหัส MFA 6 หลัก" maxlength="6">
-            <button onclick="verifyMfa()" class="btn-primary">ยืนยันรหัส MFA</button>
-        </div>
-
         <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
     </div>
     <script src="script.js"></script>
