@@ -8,21 +8,21 @@ export default async function handler(req, res) {
         const { username, device, fingerprint } = req.body;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-        // ดึงลายนิ้วมือและอีเมล
+        // ดึง Email และลายนิ้วมือที่เคยบันทึก
         const userRes = await client.query("SELECT email, authorized_fingerprint FROM users WHERE username = $1", [username]);
         if (userRes.rows.length === 0) return res.status(200).json({ risk_level: "LOW" });
 
         const { email, authorized_fingerprint } = userRes.rows[0];
-        const fp_match = authorized_fingerprint === fingerprint;
+        const fp_match = (authorized_fingerprint === fingerprint); // เครื่องเดิม = true
 
         let score = 0.1;
         let mfa = null;
 
-        if (!fp_match) { 
-            score = 0.5; // MEDIUM Risk ทันทีถ้าเครื่องไม่ตรง
+        if (fp_match === false) { 
+            score = 0.5; // เปลี่ยนเครื่องปุ๊บ เป็น Medium ทันที
             mfa = Math.floor(100000 + Math.random() * 900000).toString();
-            // จำลองการส่งเมล (ดูผลใน Console)
-            console.log(`[MFA System] Sending code ${mfa} to email: ${email}`);
+            // จำลองการส่งเมล
+            console.log(`[EMAIL SYSTEM] Sending MFA Code: ${mfa} to ${email}`);
         }
 
         const level = score >= 0.7 ? "HIGH" : (score >= 0.4 ? "MEDIUM" : "LOW");
