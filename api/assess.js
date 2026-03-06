@@ -10,25 +10,29 @@ export default async function handler(req, res) {
         const { username, device, fp_mismatch } = req.body;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-        // [1] CLEANUP: ลบ Log ที่นิ่งเกิน 15 นาที
+        // [1] VALIDATE USER: เช็คว่ามีตัวตนจริงไหม (Prepared Statement)
+        const userCheck = await client.query("SELECT id FROM users WHERE username = $1", [username]);
+        if (userCheck.rows.length === 0) {
+            return res.status(200).json({ risk_level: "LOW", logId: null });
+        }
+
+        // [2] AUTO-CLEANUP: ลบ Log เก่าเกิน 15 นาที
         await client.query("DELETE FROM login_risks WHERE updated_at < NOW() - INTERVAL '15 minutes'");
 
-        // [2] FIND EXISTING: หา Record เดิมที่ยัง Login ไม่สำเร็จใน 15 นาทีนี้
+        // [3] FIND EXISTING: หา Record เดิมที่ยังไม่สำเร็จใน 15 นาที (Aggregation)
         const existing = await client.query(
-            `SELECT id, attempts FROM login_risks 
-             WHERE username = $1 AND ip_address = $2 AND is_success = FALSE 
-             LIMIT 1`, [username, ip]
+            "SELECT id, attempts FROM login_risks WHERE username = $1 AND ip_address = $2 AND is_success = FALSE LIMIT 1",
+            [username, ip]
         );
 
         let attempts = 1;
         let logId = null;
-
         if (existing.rows.length > 0) {
             attempts = existing.rows[0].attempts + 1;
             logId = existing.rows[0].id;
         }
 
-        // [3] RISK LOGIC: คำนวณตามจำนวนครั้งที่กด
+        // [4] RISK LOGIC
         let score = 0.1;
         if (attempts >= 3) score = 0.4; // MEDIUM
         if (attempts >= 5) score = 0.8; // HIGH
@@ -36,22 +40,21 @@ export default async function handler(req, res) {
         const level = score >= 0.8 ? "HIGH" : (score >= 0.4 ? "MEDIUM" : "LOW");
 
         if (logId) {
-            // UPDATE: รวมกลุ่มเข้าที่เดิม
+            // [5] UPSERT: อัปเดตแถวเดิม (Prepared Statement)
             await client.query(
                 "UPDATE login_risks SET attempts = $1, risk_score = $2, risk_level = $3, updated_at = NOW() WHERE id = $4",
                 [attempts, score, level, logId]
             );
         } else {
-            // INSERT: สร้างอันใหม่ (ครั้งแรก)
+            // [6] INSERT: สร้างแถวใหม่ (Prepared Statement)
             const result = await client.query(
-                `INSERT INTO login_risks (username, ip_address, device_info, fingerprint_mismatch, attempts, risk_score, risk_level) 
-                 VALUES ($1, $2, $3, $4, 1, $5, $6) RETURNING id`,
+                "INSERT INTO login_risks (username, ip_address, device_info, fingerprint_mismatch, attempts, risk_score, risk_level) VALUES ($1, $2, $3, $4, 1, $5, $6) RETURNING id",
                 [username, ip, device, fp_mismatch, score, level]
             );
             logId = result.rows[0].id;
         }
 
         res.status(200).json({ risk_level: level, logId });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { res.status(500).json({ error: "DB Error" }); }
     finally { await client.end(); }
 }
