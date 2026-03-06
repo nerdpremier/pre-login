@@ -3,44 +3,55 @@ const { Client } = pkg;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send();
-    
-    const client = new Client({ 
-        connectionString: process.env.DATABASE_URL, 
-        ssl: { rejectUnauthorized: false } 
-    });
+    const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
     try {
         await client.connect();
         const { username, device, fp_mismatch } = req.body;
-        
-        // ดึง IP ของ User จาก Vercel Header (แก้ปัญหา Error 429)
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-        // 1. AUTO-CLEANUP: ลบ Log เก่ากว่า 15 นาที
-        await client.query("DELETE FROM login_risks WHERE created_at < NOW() - INTERVAL '15 minutes'");
+        // [1] CLEANUP: ลบ Log ที่นิ่งเกิน 15 นาที
+        await client.query("DELETE FROM login_risks WHERE updated_at < NOW() - INTERVAL '15 minutes'");
 
-        // 2. COUNT RATE: นับการลองใน 15 นาที
-        const rateCheck = await client.query("SELECT count(*) FROM login_risks WHERE username = $1", [username]);
-        const loginRate = parseInt(rateCheck.rows[0].count);
-
-        // 3. CALC SCORE: ปรับความ Sensitive
-        let score = 0.1;
-        if (loginRate >= 2 && loginRate < 4) score = 0.4; // MEDIUM
-        else if (loginRate >= 4) score = 0.8; // HIGH
-        if (fp_mismatch) score += 0.4;
-
-        const level = score >= 0.8 ? "HIGH" : (score >= 0.4 ? "MEDIUM" : "LOW");
-
-        // 4. INSERT: บันทึก Log
-        await client.query(
-            "INSERT INTO login_risks (username, ip_address, device_info, fingerprint_mismatch, login_rate, risk_score, risk_level) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-            [username, ip, device, fp_mismatch, loginRate, score, level]
+        // [2] FIND EXISTING: หา Record เดิมที่ยัง Login ไม่สำเร็จใน 15 นาทีนี้
+        const existing = await client.query(
+            `SELECT id, attempts FROM login_risks 
+             WHERE username = $1 AND ip_address = $2 AND is_success = FALSE 
+             LIMIT 1`, [username, ip]
         );
 
-        res.status(200).json({ risk_level: level });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    } finally {
-        await client.end();
-    }
+        let attempts = 1;
+        let logId = null;
+
+        if (existing.rows.length > 0) {
+            attempts = existing.rows[0].attempts + 1;
+            logId = existing.rows[0].id;
+        }
+
+        // [3] RISK LOGIC: คำนวณตามจำนวนครั้งที่กด
+        let score = 0.1;
+        if (attempts >= 3) score = 0.4; // MEDIUM
+        if (attempts >= 5) score = 0.8; // HIGH
+        if (fp_mismatch) score += 0.4;
+        const level = score >= 0.8 ? "HIGH" : (score >= 0.4 ? "MEDIUM" : "LOW");
+
+        if (logId) {
+            // UPDATE: รวมกลุ่มเข้าที่เดิม
+            await client.query(
+                "UPDATE login_risks SET attempts = $1, risk_score = $2, risk_level = $3, updated_at = NOW() WHERE id = $4",
+                [attempts, score, level, logId]
+            );
+        } else {
+            // INSERT: สร้างอันใหม่ (ครั้งแรก)
+            const result = await client.query(
+                `INSERT INTO login_risks (username, ip_address, device_info, fingerprint_mismatch, attempts, risk_score, risk_level) 
+                 VALUES ($1, $2, $3, $4, 1, $5, $6) RETURNING id`,
+                [username, ip, device, fp_mismatch, score, level]
+            );
+            logId = result.rows[0].id;
+        }
+
+        res.status(200).json({ risk_level: level, logId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+    finally { await client.end(); }
 }
