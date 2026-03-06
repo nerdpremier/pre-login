@@ -13,6 +13,12 @@
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
         <button onclick="preLoginCheck()" class="btn-primary">Login</button>
+
+        <div id="mfa-section" style="display:none; margin-top:18px;">
+            <input type="text" id="mfa-code" placeholder="กรอกรหัส MFA 6 หลัก" maxlength="6">
+            <button onclick="verifyMfa()" class="btn-primary">ยืนยันรหัส MFA</button>
+        </div>
+
         <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
     </div>
     <script src="script.js"></script>
