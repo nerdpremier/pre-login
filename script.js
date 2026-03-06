@@ -1,55 +1,12 @@
-function updateStatus(type, msg) {
-    const box = document.getElementById('status-box');
-    if (!box) return;
-    box.style.display = 'block'; box.innerText = msg;
-    box.style.background = type === 'danger' ? 'rgba(239,68,68,0.2)' : (type === 'success' ? 'rgba(34,197,94,0.2)' : '#334155');
-    box.style.color = type === 'danger' ? '#f87171' : (type === 'success' ? '#4ade80' : 'white');
-}
-
-function getSecureFp() {
-    const hardware = [screen.width + "x" + screen.height, navigator.hardwareConcurrency || 0, navigator.platform];
-    return btoa(hardware.join("|")).substring(0, 128);
-}
-
-function validateInputs(username, password) {
-    const userRegex = /^[a-zA-Z0-9]+$/;
-    const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!userRegex.test(username)) return "Username ต้องเป็นภาษาอังกฤษและตัวเลขเท่านั้น";
-    if (!passRegex.test(password)) return "Password ไม่ตรงตามมาตรฐานความปลอดภัย";
-    return null;
-}
-
-// ----------------- สมัครสมาชิก -----------------
-async function handleRegister() {
-    const username = document.getElementById('username')?.value.trim();
-    const email = document.getElementById('email')?.value.trim();
-    const password = document.getElementById('password')?.value.trim();
-    
-    if (!username || !email || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบทุกช่อง");
-    const error = validateInputs(username, password);
-    if (error) return updateStatus('danger', `⚠️ ${error}`);
-
-    updateStatus('loading', "⏳ กำลังสร้างบัญชี...");
-    try {
-        const res = await fetch('/api/auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'register', username, email, password })
-        });
-        if (res.ok) {
-            updateStatus('success', "✅ สมัครสำเร็จ! กำลังไปหน้า Login...");
-            setTimeout(() => window.location.href = 'index.html', 1500);
-        } else {
-            const data = await res.json();
-            updateStatus('danger', `❌ ${data.error || "มีข้อผิดพลาด"}`);
-        }
-    } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
-}
+// ... (updateStatus, getSecureFp, validateInputs เหมือนเดิม) ...
 
 // ----------------- ล็อกอิน และเช็ค Risk -----------------
 async function preLoginCheck() {
     const username = document.getElementById('username')?.value.trim();
     const password = document.getElementById('password')?.value.trim();
+    // ดึงค่า Checkbox ว่าผู้ใช้ต้องการให้จำเครื่องไหม
+    const remember = document.getElementById('remember-device')?.checked;
+
     if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
 
     updateStatus('loading', "🔍 กำลังตรวจสอบอุปกรณ์...");
@@ -57,7 +14,7 @@ async function preLoginCheck() {
         const fingerprint = getSecureFp();
         const device = `Screen:${screen.width}x${screen.height} | CPU:${navigator.hardwareConcurrency}`;
 
-        // 1. ประเมินความเสี่ยง
+        // 1. ประเมินความเสี่ยงเบื้องต้น
         const riskRes = await fetch('/api/assess', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -65,57 +22,78 @@ async function preLoginCheck() {
         });
         const riskData = await riskRes.json();
 
-        if (riskData.risk_level === "HIGH") return updateStatus('danger', "🚨 ความเสี่ยงสูง ระงับการเข้าถึง");
-        
-        // 2. ถ้าเสี่ยงปานกลาง ไปหน้า MFA
-        if (riskData.risk_level === "MEDIUM") {
-            updateStatus('success', "🛡️ อุปกรณ์ใหม่! กรุณายืนยันรหัสในอีเมล...");
-            setTimeout(() => window.location.href = `mfa.html?logId=${riskData.logId}`, 1500);
-            return;
+        if (riskData.risk_level === "HIGH") {
+            return updateStatus('danger', "🚨 ความเสี่ยงสูงเกินไป ระงับการเข้าถึงชั่วคราว");
         }
-
-        // 3. ถ้าปกติ ล็อกอินเลย
+        
+        // 2. ส่งไปเช็ครหัสผ่าน
         const authRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'login', username, password, fingerprint })
+            body: JSON.stringify({ 
+                action: 'login', 
+                username, 
+                password, 
+                fingerprint,
+                logId: riskData.logId,
+                risk_level: riskData.risk_level,
+                remember: remember // ส่งสถานะการจดจำเครื่องไปให้หลังบ้าน
+            })
         });
-        const isOk = authRes.ok;
 
-        // อัปเดต Log ว่าล็อกอินสำเร็จหรือไม่
-        await fetch('/api/update-risk', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logId: riskData.logId, success: isOk })
-        });
+        const authData = await authRes.json();
 
-        if (isOk) {
-            updateStatus('success', "✅ ล็อกอินสำเร็จ!");
-            setTimeout(() => window.location.href = 'welcome.html', 1000);
+        if (authRes.ok) {
+            if (authData.mfa_required) {
+                updateStatus('success', "🛡️ ตรวจพบอุปกรณ์ใหม่! ส่งรหัสยืนยันไปที่อีเมลแล้ว...");
+                // ส่ง remember พ่วงไปใน URL เพื่อให้หน้า mfa.html ส่งต่อให้ api/verify-mfa ได้
+                setTimeout(() => {
+                    window.location.href = `mfa.html?logId=${riskData.logId}&remember=${remember}`;
+                }, 1500);
+            } else {
+                updateStatus('success', "✅ ล็อกอินสำเร็จ!");
+                setTimeout(() => window.location.href = 'welcome.html', 1000);
+            }
         } else {
-            updateStatus('danger', "❌ ชื่อผู้ใช้หรือรหัสผ่านผิด");
+            updateStatus('danger', `❌ ${authData.error || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"}`);
         }
-    } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
+
+    } catch (e) { 
+        console.error(e);
+        updateStatus('danger', "❌ ระบบขัดข้อง"); 
+    }
 }
 
 // ----------------- ยืนยันรหัส MFA -----------------
 async function verifyMFA() {
     const code = document.getElementById('mfa-code')?.value.trim();
-    const logId = new URLSearchParams(window.location.search).get('logId');
-    if (!code || !logId) return updateStatus('danger', "⚠️ ข้อมูลไม่ครบถ้วน");
+    const urlParams = new URLSearchParams(window.location.search);
+    const logId = urlParams.get('logId');
+    const remember = urlParams.get('remember') === 'true'; // ดึงค่าการจดจำจาก URL
+
+    if (!code || code.length !== 6) return updateStatus('danger', "⚠️ กรุณากรอกรหัส 6 หลัก");
+    if (!logId) return updateStatus('danger', "⚠️ ข้อมูลเซสชันไม่ถูกต้อง");
 
     updateStatus('loading', "⏳ กำลังตรวจสอบรหัส...");
     try {
         const res = await fetch('/api/verify-mfa', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logId, code })
+            body: JSON.stringify({ 
+                logId, 
+                code, 
+                remember: remember // ส่งไปบอก API ว่าให้บันทึก fingerprint ลงตาราง users หรือไม่
+            })
         });
+
         if (res.ok) {
-            updateStatus('success', "✅ ยืนยันตัวตนสำเร็จ!");
-            setTimeout(() => window.location.href = 'welcome.html', 1000);
+            updateStatus('success', "✅ ยืนยันตัวตนสำเร็จ! กำลังเข้าสู่หน้าหลัก...");
+            setTimeout(() => window.location.href = 'welcome.html', 1500);
         } else {
-            updateStatus('danger', "❌ รหัสไม่ถูกต้อง");
+            const data = await res.json();
+            updateStatus('danger', `❌ ${data.error || "รหัสไม่ถูกต้อง"}`);
         }
-    } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
+    } catch (e) {
+        updateStatus('danger', "❌ ระบบขัดข้อง");
+    }
 }

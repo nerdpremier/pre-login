@@ -1,5 +1,4 @@
 import pkg from 'pg';
-import nodemailer from 'nodemailer'; // เพิ่มบรรทัดนี้เพื่อเรียกใช้ Nodemailer
 const { Client } = pkg;
 
 export default async function handler(req, res) {
@@ -11,66 +10,62 @@ export default async function handler(req, res) {
         const { username, device, fingerprint } = req.body;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-        // 1. ดึงข้อมูล User และดึง Email มาด้วย (สำคัญมาก ต้องดึงมาให้ได้)
-        const userRes = await client.query("SELECT email, authorized_fingerprint FROM users WHERE username = $1", [username]);
-        if (userRes.rows.length === 0) return res.status(200).json({ risk_level: "LOW", logId: null });
-
-        const { email, authorized_fingerprint: savedFp } = userRes.rows[0];
-        const fp_match = savedFp ? (savedFp === fingerprint) : true;
-
-        // 2. คำนวณความเสี่ยง
-        let score = 0.1;
-        if (!fp_match) score += 0.4; // เครื่องเปลี่ยน = 0.5 (MEDIUM)
-
-        const level = score >= 0.7 ? "HIGH" : (score >= 0.4 ? "MEDIUM" : "LOW");
-
-        // 3. สร้างรหัส MFA และ "ส่งอีเมล" หากเป็น MEDIUM
-        let mfaCode = null;
-        if (level === "MEDIUM") {
-            mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
-            
-            // --- ระบบส่งอีเมลด้วย Nodemailer ---
-            try {
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail', // ถ้าใช้ Gmail
-                    auth: {
-                        user: process.env.EMAIL_USER, // ดึงจาก Environment Variable
-                        pass: process.env.EMAIL_PASS  // ดึงจาก Environment Variable
-                    }
-                });
-
-                const mailOptions = {
-                    from: `"ระบบรักษาความปลอดภัย" <${process.env.EMAIL_USER}>`,
-                    to: email, // ส่งไปที่อีเมลของ User ที่ได้จาก Database
-                    subject: '🔒 รหัสยืนยันตัวตน (MFA Code) สำหรับการเข้าสู่ระบบ',
-                    html: `
-                        <h2>ตรวจพบการเข้าสู่ระบบจากอุปกรณ์ใหม่</h2>
-                        <p>คุณ <b>${username}</b>,</p>
-                        <p>เราพบความพยายามเข้าสู่ระบบจากอุปกรณ์ที่ยังไม่เคยได้รับการยืนยัน</p>
-                        <p>รหัสยืนยันตัวตน (MFA) 6 หลักของคุณคือ:</p>
-                        <h1 style="color: #3b82f6; letter-spacing: 5px;">${mfaCode}</h1>
-                        <p><i>โปรดอย่านำรหัสนี้ไปให้บุคคลอื่นเด็ดขาด</i></p>
-                    `
-                };
-
-                // สั่งส่งอีเมล
-                await transporter.sendMail(mailOptions);
-                console.log(`✅ ส่ง MFA Code ไปที่อีเมล ${email} สำเร็จ!`);
-
-            } catch (mailError) {
-                console.error("❌ เกิดข้อผิดพลาดในการส่งอีเมล:", mailError);
-                // ระบบอาจจะเดินต่อได้แม้เมลส่งไม่ผ่าน แต่เก็บ error ไว้ดู
-            }
-        }
-
-        // 4. บันทึกลงตาราง login_risks
-        const result = await client.query(
-            `INSERT INTO login_risks (username, ip_address, device_info, current_fingerprint, fingerprint_match, risk_score, risk_level, mfa_code, is_success) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE) RETURNING id`,
-            [username, ip, device, fingerprint, fp_match, score, level, mfaCode]
+        // 1. ค้นหา Log ล่าสุดของ User นี้ที่ "ยังไม่สำเร็จ" ภายใน 15 นาทีที่ผ่านมา
+        const recentLog = await client.query(
+            `SELECT id, attempts FROM login_risks 
+             WHERE username = $1 AND ip_address = $2 AND is_success = FALSE 
+             AND updated_at > NOW() - INTERVAL '15 minutes' 
+             ORDER BY updated_at DESC LIMIT 1`,
+            [username, ip]
         );
 
-        res.status(200).json({ risk_level: level, logId: result.rows[0].id });
+        let logId = null;
+        let currentAttempts = 1;
+
+        if (recentLog.rows.length > 0) {
+            logId = recentLog.rows[0].id;
+            currentAttempts = recentLog.rows[0].attempts + 1; // บวกจำนวนครั้งเพิ่ม
+        }
+
+        // 2. เช็คการเปลี่ยนเครื่อง (Fingerprint)
+        const userRes = await client.query("SELECT authorized_fingerprint FROM users WHERE username = $1", [username]);
+        const savedFp = userRes.rows.length > 0 ? userRes.rows[0].authorized_fingerprint : null;
+        const fp_match = savedFp ? (savedFp === fingerprint) : true;
+
+        // 3. คำนวณความเสี่ยง (Risk Score)
+        // สูตร: $score = base + (attempts \times 0.1) + (fp\_mismatch \times 0.4)$
+        let score = 0.1;
+        if (!fp_match) score += 0.4;
+        if (currentAttempts >= 3) score += 0.2;
+        
+        // กำหนดระดับความเสี่ยง
+        let level = "LOW";
+        if (currentAttempts >= 5 || score >= 0.7) {
+            level = "HIGH"; // ล็อกเอาท์หรือบล็อก
+        } else if (score >= 0.4) {
+            level = "MEDIUM"; // ต้องใช้ MFA (แต่ยังไม่ส่งเมลที่นี่!)
+        }
+
+        // 4. บันทึกลงฐานข้อมูล (ถ้ามี Log เดิมให้ Update ถ้าไม่มีให้ Insert)
+        if (logId) {
+            await client.query(
+                `UPDATE login_risks 
+                 SET attempts = $1, risk_score = $2, risk_level = $3, updated_at = NOW(), mfa_code = NULL 
+                 WHERE id = $4`,
+                [currentAttempts, score, level, logId]
+            );
+        } else {
+            const result = await client.query(
+                `INSERT INTO login_risks (username, ip_address, device_info, current_fingerprint, fingerprint_match, attempts, risk_score, risk_level, is_success) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE) RETURNING id`,
+                [username, ip, device, fingerprint, fp_match, currentAttempts, score, level]
+            );
+            logId = result.rows[0].id;
+        }
+
+        // ส่งแค่ระดับความเสี่ยงและ logId กลับไป (ห้ามส่ง mfa_code หรือส่งเมลที่นี่)
+        res.status(200).json({ risk_level: level, logId: logId });
+
     } catch (err) { 
         console.error(err);
         res.status(500).json({ error: err.message }); 
