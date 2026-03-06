@@ -10,17 +10,14 @@ export default async function handler(req, res) {
         const { username, device, fingerprint } = req.body;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-        // 1. ตรวจสอบ Fingerprint ที่บันทึกไว้
         const userRes = await client.query("SELECT authorized_fingerprint FROM users WHERE username = $1", [username]);
         if (userRes.rows.length === 0) return res.status(200).json({ risk_level: "LOW", logId: null });
 
         const savedFp = userRes.rows[0].authorized_fingerprint;
         
-        // LOGIC: ถ้ามีประวัติแล้วต้องตรงกันถึงจะเป็น TRUE (เครื่องเดิม)
-        // ถ้าไม่ตรงจะเป็น FALSE (เปลี่ยนเครื่อง)
+        // เครื่องเดิม = TRUE, เปลี่ยนเครื่อง = FALSE
         const fp_match = savedFp ? (savedFp === fingerprint) : true;
 
-        // 2. จัดการ Log Aggregation (รวมกลุ่มภายใน 15 นาที)
         await client.query("DELETE FROM login_risks WHERE updated_at < NOW() - INTERVAL '15 minutes'");
         const existing = await client.query(
             "SELECT id, attempts FROM login_risks WHERE username = $1 AND ip_address = $2 AND is_success = FALSE LIMIT 1",
@@ -33,13 +30,10 @@ export default async function handler(req, res) {
             logId = existing.rows[0].id;
         }
 
-        // 3. คำนวณความเสี่ยง (Scale 1.0)
         let score = 0.1;
         if (attempts >= 2 && attempts < 4) score = 0.3;
         else if (attempts >= 4) score = 0.6;
-        
-        // ถ้าเปลี่ยนเครื่อง (fp_match เป็น false) บวกคะแนนความเสี่ยงเพิ่ม 0.4
-        if (fp_match === false) score += 0.4;
+        if (fp_match === false) score += 0.4; // เปลี่ยนเครื่องบวกคะแนน
 
         const finalScore = Math.min(score, 1.0);
         const level = finalScore >= 0.7 ? "HIGH" : (finalScore >= 0.4 ? "MEDIUM" : "LOW");

@@ -1,3 +1,4 @@
+// ฟังก์ชันแสดงสถานะ
 function updateStatus(type, msg) {
     const box = document.getElementById('status-box');
     if (!box) return;
@@ -6,7 +7,7 @@ function updateStatus(type, msg) {
     box.style.color = type === 'danger' ? '#f87171' : (type === 'success' ? '#4ade80' : 'white');
 }
 
-// ฟังก์ชันสร้างลายนิ้วมือ (สลับเอา Hardware ขึ้นก่อนเพื่อแยกเครื่องให้ขาด)
+// สร้างลายนิ้วมือ (Hardware-First)
 function getSecureFp() {
     const hardware = [
         screen.width + "x" + screen.height,
@@ -16,22 +17,38 @@ function getSecureFp() {
         navigator.platform,
         navigator.language
     ];
-    // ต่อด้วย UserAgent ไว้ท้ายสุด
     const raw = hardware.join("|") + "|" + navigator.userAgent;
     return btoa(raw).substring(0, 128);
 }
+
+// --- ส่วนที่เพิ่มใหม่: ตรวจจับการกด Enter ---
+document.addEventListener('DOMContentLoaded', () => {
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                // ถ้าอยู่ในหน้า Login ให้เรียก preLoginCheck
+                // ถ้าอยู่ในหน้า Register ให้เรียก handleRegister
+                if (document.querySelector('button').innerText.includes('Login')) {
+                    preLoginCheck();
+                } else {
+                    handleRegister();
+                }
+            }
+        });
+    });
+});
 
 async function preLoginCheck() {
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
     if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
 
-    updateStatus('loading', "🔍 ตรวจสอบความปลอดภัยอุปกรณ์...");
+    updateStatus('loading', "🔍 กำลังตรวจพิสูจน์เครื่องอุปกรณ์...");
     try {
         const fingerprint = getSecureFp();
         const device = `Screen:${screen.width}x${screen.height} | CPU:${navigator.hardwareConcurrency} | ${navigator.platform}`;
 
-        // 1. ประเมินความเสี่ยง
         const riskRes = await fetch('/api/assess', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -39,9 +56,8 @@ async function preLoginCheck() {
         });
         const { risk_level, logId } = await riskRes.json();
 
-        if (risk_level === "HIGH") return updateStatus('danger', "🚨 ระงับการเข้าถึงเนื่องจากความเสี่ยงสูง");
+        if (risk_level === "HIGH") return updateStatus('danger', "🚨 บล็อกการเข้าถึงเนื่องจากความเสี่ยงสูง");
 
-        // 2. ดำเนินการล็อกอิน
         const authRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -49,7 +65,6 @@ async function preLoginCheck() {
         });
         const isOk = authRes.ok;
 
-        // 3. บันทึกผลสำเร็จลงใน Log ID เดิม
         await fetch('/api/update-risk', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -57,8 +72,8 @@ async function preLoginCheck() {
         });
 
         if (isOk) {
-            updateStatus('success', "✅ สำเร็จ! กำลังนำคุณเข้าสู่ระบบ");
-            setTimeout(() => window.location.href = 'welcome.html', 1000);
+            updateStatus('success', "✅ ยินดีต้อนรับ!");
+            setTimeout(() => window.location.href = 'welcome.html', 800);
         } else {
             updateStatus('danger', "❌ รหัสผ่านไม่ถูกต้อง");
         }
