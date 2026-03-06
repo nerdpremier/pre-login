@@ -10,30 +10,31 @@ async function preLoginCheck() {
     const password = document.getElementById('password').value.trim();
     if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
 
-    updateStatus('loading', "🔍 ตรวจสอบความปลอดภัย...");
+    updateStatus('loading', "🔍 กำลังวิเคราะห์ความปลอดภัย...");
     try {
+        // สร้าง Fingerprint (ลายนิ้วมือเครื่อง)
         const device = `${navigator.platform} | ${navigator.userAgent}`;
-        const fingerprint = btoa(device).substring(0, 16); // สร้างลายนิ้วมือเครื่องปัจจุบัน
+        const fingerprint = btoa(device).substring(0, 16);
 
-        // 1. ส่ง fingerprint ไปให้ Server เทียบกับข้อมูลใน DB
+        // 1. เช็คความเสี่ยง (Server จะเทียบ Fingerprint ให้เอง)
         const riskRes = await fetch('/api/assess', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, device, fingerprint }) 
+            body: JSON.stringify({ username, device, fingerprint })
         });
         const { risk_level, logId } = await riskRes.json();
 
-        if (risk_level === "HIGH") return updateStatus('danger', "🚨 ระงับการเข้าถึง (พยายามมากเกินไป)");
+        if (risk_level === "HIGH") return updateStatus('danger', "🚨 ระงับการเข้าถึงชั่วคราว (15 นาที)");
 
-        // 2. เช็ครหัสผ่าน
+        // 2. ดำเนินการล็อกอิน
         const authRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'login', username, password, fingerprint }) 
+            body: JSON.stringify({ action: 'login', username, password, fingerprint })
         });
         const isOk = authRes.ok;
 
-        // 3. แจ้งผล Success/Fail กลับไปที่ Log
+        // 3. แจ้งผลกลับเพื่อบันทึกสถิติใน ID เดิม
         await fetch('/api/update-risk', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -41,7 +42,7 @@ async function preLoginCheck() {
         });
 
         if (isOk) {
-            updateStatus('success', "✅ ยินดีต้อนรับ!");
+            updateStatus('success', "✅ สำเร็จ! กำลังพาคุณไป...");
             setTimeout(() => window.location.href = 'welcome.html', 1000);
         } else {
             updateStatus('danger', "❌ รหัสผ่านไม่ถูกต้อง");
