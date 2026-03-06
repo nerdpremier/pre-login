@@ -1,4 +1,3 @@
-// ฟังก์ชันแสดงสถานะบนหน้าจอ
 function updateStatus(type, msg) {
     const box = document.getElementById('status-box');
     if (!box) return;
@@ -7,20 +6,19 @@ function updateStatus(type, msg) {
     box.style.color = type === 'danger' ? '#f87171' : (type === 'success' ? '#4ade80' : 'white');
 }
 
-// สร้างลายนิ้วมือโดยเอา Hardware ขึ้นก่อน (แก้ปัญหาค่าซ้ำจาก OS/Browser)
+// ฟังก์ชันสร้างลายนิ้วมือ (สลับเอา Hardware ขึ้นก่อนเพื่อแยกเครื่องให้ขาด)
 function getSecureFp() {
-    const hardwareInfo = [
-        screen.width + "x" + screen.height,    // ความละเอียดจอ (ต่างกันบ่อย)
-        navigator.hardwareConcurrency || 0,    // จำนวน CPU Core (ต่างกันชัดเจน)
-        new Date().getTimezoneOffset(),        // เขตเวลา
-        screen.colorDepth,                     // ความลึกสี
-        navigator.platform,                    // OS (Win32)
-        navigator.language                     // ภาษาเครื่อง
+    const hardware = [
+        screen.width + "x" + screen.height,
+        navigator.hardwareConcurrency || 0,
+        new Date().getTimezoneOffset(),
+        screen.colorDepth,
+        navigator.platform,
+        navigator.language
     ];
-    // นำค่า Hardware มาต่อกันแล้วเข้ารหัส Base64
-    // ไม่เอา UserAgent ไว้ข้างหน้า เพราะมันยาวและทำให้ค่าต้นๆ เหมือนกัน
-    const rawString = hardwareInfo.join("|") + "|" + navigator.userAgent;
-    return btoa(rawString).substring(0, 128); // เก็บยาว 128 ตัวเพื่อความแม่นยำสูงสุด
+    // ต่อด้วย UserAgent ไว้ท้ายสุด
+    const raw = hardware.join("|") + "|" + navigator.userAgent;
+    return btoa(raw).substring(0, 128);
 }
 
 async function preLoginCheck() {
@@ -28,10 +26,9 @@ async function preLoginCheck() {
     const password = document.getElementById('password').value.trim();
     if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
 
-    updateStatus('loading', "🔍 กำลังตรวจพิสูจน์เครื่องอุปกรณ์...");
+    updateStatus('loading', "🔍 ตรวจสอบความปลอดภัยอุปกรณ์...");
     try {
         const fingerprint = getSecureFp();
-        // สร้างข้อมูลอุปกรณ์เพื่อโชว์ใน DB (เห็นความต่างของ CPU/Screen ชัดเจน)
         const device = `Screen:${screen.width}x${screen.height} | CPU:${navigator.hardwareConcurrency} | ${navigator.platform}`;
 
         // 1. ประเมินความเสี่ยง
@@ -42,9 +39,9 @@ async function preLoginCheck() {
         });
         const { risk_level, logId } = await riskRes.json();
 
-        if (risk_level === "HIGH") return updateStatus('danger', "🚨 ระงับการเข้าถึง (ตรวจพบพฤติกรรมเสี่ยงสูง)");
+        if (risk_level === "HIGH") return updateStatus('danger', "🚨 ระงับการเข้าถึงเนื่องจากความเสี่ยงสูง");
 
-        // 2. ล็อกอิน
+        // 2. ดำเนินการล็อกอิน
         const authRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -52,7 +49,7 @@ async function preLoginCheck() {
         });
         const isOk = authRes.ok;
 
-        // 3. บันทึกผล Success/Fail ลง Log เดิม
+        // 3. บันทึกผลสำเร็จลงใน Log ID เดิม
         await fetch('/api/update-risk', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -60,10 +57,10 @@ async function preLoginCheck() {
         });
 
         if (isOk) {
-            updateStatus('success', "✅ ยินดีต้อนรับ! กำลังเข้าสู่ระบบ...");
+            updateStatus('success', "✅ สำเร็จ! กำลังนำคุณเข้าสู่ระบบ");
             setTimeout(() => window.location.href = 'welcome.html', 1000);
         } else {
-            updateStatus('danger', "❌ ชื่อผู้ใช้หรือรหัสผ่านผิด");
+            updateStatus('danger', "❌ รหัสผ่านไม่ถูกต้อง");
         }
     } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
 }
