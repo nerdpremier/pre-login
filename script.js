@@ -1,4 +1,4 @@
-// ฟังก์ชันแสดงสถานะ
+// ฟังก์ชันแสดงสถานะบนหน้าจอ (UI Only)
 function updateStatus(type, msg) {
     const box = document.getElementById('status-box');
     if (!box) return;
@@ -7,7 +7,7 @@ function updateStatus(type, msg) {
     box.style.color = type === 'danger' ? '#f87171' : (type === 'success' ? '#4ade80' : 'white');
 }
 
-// สร้างลายนิ้วมือ (Hardware-First)
+// สร้างลายนิ้วมือ Hardware-First
 function getSecureFp() {
     const hardware = [
         screen.width + "x" + screen.height,
@@ -21,15 +21,14 @@ function getSecureFp() {
     return btoa(raw).substring(0, 128);
 }
 
-// --- ส่วนที่เพิ่มใหม่: ตรวจจับการกด Enter ---
+// ระบบตรวจจับการกด Enter
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = document.querySelectorAll('input');
     inputs.forEach(input => {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                // ถ้าอยู่ในหน้า Login ให้เรียก preLoginCheck
-                // ถ้าอยู่ในหน้า Register ให้เรียก handleRegister
-                if (document.querySelector('button').innerText.includes('Login')) {
+                const btn = document.querySelector('button');
+                if (btn.innerText.includes('Login') || btn.innerText.includes('เข้าสู่ระบบ')) {
                     preLoginCheck();
                 } else {
                     handleRegister();
@@ -44,7 +43,7 @@ async function preLoginCheck() {
     const password = document.getElementById('password').value.trim();
     if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
 
-    updateStatus('loading', "🔍 กำลังตรวจพิสูจน์เครื่องอุปกรณ์...");
+    updateStatus('loading', "🔍 ตรวจสอบความปลอดภัยอุปกรณ์...");
     try {
         const fingerprint = getSecureFp();
         const device = `Screen:${screen.width}x${screen.height} | CPU:${navigator.hardwareConcurrency} | ${navigator.platform}`;
@@ -56,7 +55,7 @@ async function preLoginCheck() {
         });
         const { risk_level, logId } = await riskRes.json();
 
-        if (risk_level === "HIGH") return updateStatus('danger', "🚨 บล็อกการเข้าถึงเนื่องจากความเสี่ยงสูง");
+        if (risk_level === "HIGH") return updateStatus('danger', "🚨 ระงับการเข้าถึงเนื่องจากความเสี่ยงสูง");
 
         const authRes = await fetch('/api/auth', {
             method: 'POST',
@@ -72,10 +71,10 @@ async function preLoginCheck() {
         });
 
         if (isOk) {
-            updateStatus('success', "✅ ยินดีต้อนรับ!");
-            setTimeout(() => window.location.href = 'welcome.html', 800);
+            updateStatus('success', "✅ ยินดีต้อนรับ! กำลังพาคุณไป...");
+            setTimeout(() => window.location.href = 'welcome.html', 1000);
         } else {
-            updateStatus('danger', "❌ รหัสผ่านไม่ถูกต้อง");
+            updateStatus('danger', "❌ ชื่อผู้ใช้หรือรหัสผ่านผิด");
         }
     } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
 }
@@ -85,11 +84,20 @@ async function handleRegister() {
     const password = document.getElementById('password').value.trim();
     if (!username || !password) return updateStatus('danger', "⚠️ กรอกข้อมูลไม่ครบ");
 
-    const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register', username, password })
-    });
-    if (res.ok) { alert("สมัครสำเร็จ!"); window.location.href = 'index.html'; }
-    else updateStatus('danger', "❌ ชื่อนี้ถูกใช้ไปแล้ว");
+    updateStatus('loading', "⏳ กำลังสร้างบัญชี...");
+    try {
+        const res = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'register', username, password })
+        });
+
+        if (res.ok) {
+            // แก้ไขตรงนี้: ไม่ใช้ alert แต่แสดงบนหน้าจอแทน
+            updateStatus('success', "✅ สมัครสมาชิกสำเร็จ! กำลังกลับไปหน้า Login...");
+            setTimeout(() => window.location.href = 'index.html', 1500);
+        } else {
+            updateStatus('danger', "❌ ชื่อนี้ถูกใช้ไปแล้ว หรือเซิร์ฟเวอร์ขัดข้อง");
+        }
+    } catch (e) { updateStatus('danger', "❌ ไม่สามารถสมัครสมาชิกได้"); }
 }

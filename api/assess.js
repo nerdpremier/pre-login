@@ -14,8 +14,6 @@ export default async function handler(req, res) {
         if (userRes.rows.length === 0) return res.status(200).json({ risk_level: "LOW", logId: null });
 
         const savedFp = userRes.rows[0].authorized_fingerprint;
-        
-        // เครื่องเดิม = TRUE, เปลี่ยนเครื่อง = FALSE
         const fp_match = savedFp ? (savedFp === fingerprint) : true;
 
         await client.query("DELETE FROM login_risks WHERE updated_at < NOW() - INTERVAL '15 minutes'");
@@ -33,7 +31,7 @@ export default async function handler(req, res) {
         let score = 0.1;
         if (attempts >= 2 && attempts < 4) score = 0.3;
         else if (attempts >= 4) score = 0.6;
-        if (fp_match === false) score += 0.4; // เปลี่ยนเครื่องบวกคะแนน
+        if (fp_match === false) score += 0.4;
 
         const finalScore = Math.min(score, 1.0);
         const level = finalScore >= 0.7 ? "HIGH" : (finalScore >= 0.4 ? "MEDIUM" : "LOW");
