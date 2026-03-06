@@ -1,46 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Verification Required</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="login-card">
-        <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">🛡️</div>
-        <h2>Verify Identity</h2>
-        <p class="subtitle">We've sent a 6-digit code to your email. Please enter it below.</p>
-        
-        <div id="status-box" class="status-box"></div>
+<div class="login-card">
+    <div style="font-size: 3.5rem; margin-bottom: 1.5rem; filter: drop-shadow(0 0 10px var(--primary));">🛡️</div>
+    <h2>Verify It's You</h2>
+    <p class="subtitle">A 6-digit verification code has been sent to your registered email. It expires in 10 minutes.</p>
+    
+    <div id="status-box" class="status-box"></div>
 
-        <input type="text" id="mfa-input" placeholder="000 000" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;">
-        
-        <button onclick="verifyMFA()">Verify & Continue</button>
-        
-        <div class="footer">
-            Didn't get the code? <a href="#" onclick="location.reload()">Resend</a>
-        </div>
+    <div class="input-group">
+        <label style="text-align: center;">Verification Code</label>
+        <input type="text" id="mfa-input" placeholder="000 000" maxlength="6" 
+               style="text-align:center; letter-spacing: 12px; font-size: 1.5rem; font-weight: 700; padding: 18px;">
     </div>
-    <script src="script.js"></script>
-    <script>
-        // Inline script สำหรับหน้า MFA โดยเฉพาะ
-        async function verifyMFA() {
-            const code = document.getElementById('mfa-input').value;
-            const logId = new URLSearchParams(window.location.search).get('logId');
-            if (!code || !logId) return;
-            
-            const res = await fetch('/api/verify-mfa', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ logId, code })
-            });
-            if (res.ok) { 
-                updateStatus('success', 'Verified! Redirecting...');
-                setTimeout(() => window.location.href = 'welcome.html', 800);
-            } else { 
-                updateStatus('danger', "Invalid or expired code"); 
-            }
-        }
-    </script>
-</body>
-</html>
+
+    <button onclick="verifyMFA()">Verify & Unlock Access</button>
+    
+    <div class="footer">
+        Didn't receive a code? <a href="#" onclick="location.reload()">Resend Email</a>
+    </div>
+</div>

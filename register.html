@@ -1,27 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Security | Register</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="login-card">
-        <h2>Create Account</h2>
-        <p class="subtitle">Join our secure network today</p>
-        
-        <div id="status-box" class="status-box"></div>
+<div class="login-card">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+    <h2>Get Started</h2>
+    <p class="subtitle">Create a secure account using English characters and strong password.</p>
+    
+    <div id="status-box" class="status-box"></div>
 
-        <input type="text" id="username" placeholder="Username (English Only)">
-        <input type="email" id="email" placeholder="Email Address">
-        <input type="password" id="password" placeholder="Strong Password">
-        
-        <button onclick="handleRegister()">Register Account</button>
-        
-        <div class="footer">
-            Already registered? <a href="index.html">Sign in here</a>
-        </div>
+    <div class="input-group">
+        <label>Full Username</label>
+        <input type="text" id="username" placeholder="e.g. jason_secure">
     </div>
-    <script src="script.js"></script>
-</body>
-</html>
+
+    <div class="input-group">
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="name@example.com">
+    </div>
+
+    <div class="input-group">
+        <label>Secure Password</label>
+        <input type="password" id="password" placeholder="At least 8 characters">
+    </div>
+
+    <button onclick="handleRegister()">Create Free Account</button>
+    
+    <div class="footer">
+        Already have an account? <a href="index.html">Sign In</a>
+    </div>
+</div>
