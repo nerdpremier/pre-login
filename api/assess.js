@@ -3,21 +3,27 @@ const { Client } = pkg;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send();
-    const { username, ip, location, device, fp_mismatch } = req.body;
-    if (!username) return res.status(400).json({ error: "Missing data" });
+    
+    const client = new Client({ 
+        connectionString: process.env.DATABASE_URL, 
+        ssl: { rejectUnauthorized: false } 
+    });
 
-    const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
     try {
         await client.connect();
+        const { username, device, fp_mismatch } = req.body;
         
-        // 1. AUTO-CLEANUP: ลบ Log เก่ากว่า 15 นาทีทิ้ง
+        // ดึง IP ของ User จาก Vercel Header (แก้ปัญหา Error 429)
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+        // 1. AUTO-CLEANUP: ลบ Log เก่ากว่า 15 นาที
         await client.query("DELETE FROM login_risks WHERE created_at < NOW() - INTERVAL '15 minutes'");
 
-        // 2. COUNT RATE: นับครั้งที่ลองใน 15 นาที
+        // 2. COUNT RATE: นับการลองใน 15 นาที
         const rateCheck = await client.query("SELECT count(*) FROM login_risks WHERE username = $1", [username]);
         const loginRate = parseInt(rateCheck.rows[0].count);
 
-        // 3. CALC SCORE:
+        // 3. CALC SCORE: ปรับความ Sensitive
         let score = 0.1;
         if (loginRate >= 2 && loginRate < 4) score = 0.4; // MEDIUM
         else if (loginRate >= 4) score = 0.8; // HIGH
@@ -25,12 +31,16 @@ export default async function handler(req, res) {
 
         const level = score >= 0.8 ? "HIGH" : (score >= 0.4 ? "MEDIUM" : "LOW");
 
-        // 4. INSERT: บันทึก Log ใหม่
+        // 4. INSERT: บันทึก Log
         await client.query(
-            "INSERT INTO login_risks (username, ip_address, network_location, device_info, fingerprint_mismatch, login_rate, risk_score, risk_level) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            [username, ip, location, device, fp_mismatch, loginRate, score, level]
+            "INSERT INTO login_risks (username, ip_address, device_info, fingerprint_mismatch, login_rate, risk_score, risk_level) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            [username, ip, device, fp_mismatch, loginRate, score, level]
         );
+
         res.status(200).json({ risk_level: level });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-    finally { await client.end(); }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    } finally {
+        await client.end();
+    }
 }
