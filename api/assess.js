@@ -29,8 +29,8 @@ export default async function handler(req, res) {
         }
 
         let score = 0.1;
-        if (attempts >= 2 && attempts < 4) score = 0.3;
-        else if (attempts >= 4) score = 0.6;
+        if (attempts >= 2 && attempts < 5) score = 0.3;
+        else if (attempts >= 5) score = 0.6;
         if (fp_match === false) score += 0.4;
 
         const finalScore = Math.min(score, 1.0);
