@@ -6,3 +6,13 @@ input { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; bor
 .btn-primary { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
 .btn-primary:hover { background: #2563eb; }
 a { color: #60a5fa; text-decoration: none; font-size: 14px; }
+.countdown-timer {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ef4444; /* สีแดง */
+    margin: 15px 0;
+    padding: 10px;
+    border: 2px dashed #ef4444;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.1);
+}

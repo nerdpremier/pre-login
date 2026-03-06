@@ -25,10 +25,21 @@ export default async function handler(req, res) {
         // 2. คำนวณ currentAttempt จากเลขใน DB
         let currentAttempt = 1;
         // ถ้าเคยมีประวัติ และ (ครั้งล่าสุดผิดพลาด) และ (ยังไม่เกิน 5 นาที) ให้บวกเพิ่ม
-        const isRecent = userData.updated_at && (new Date() - new Date(userData.updated_at) < 5 * 60 * 1000);
-        if (userData.attempts && !userData.is_success && isRecent) {
-            currentAttempt = parseInt(userData.attempts) + 1;
-        }
+        // เปลี่ยนจาก 5 * 60 * 1000 เป็น 60 * 1000 (1 นาที)
+const isRecent = userData.updated_at && (new Date() - new Date(userData.updated_at) < 60 * 1000);
+
+if (userData.attempts && !userData.is_success && isRecent) {
+    currentAttempt = parseInt(userData.attempts) + 1;
+}
+
+// เช็คว่าถ้าพยายามครั้งที่ 5 เป็นต้นไปและยังอยู่ในช่วง 1 นาที ให้ตีเป็น HIGH Risk
+if (currentAttempt >= 5 && isRecent) {
+    return res.status(200).json({ 
+        risk_level: "HIGH", 
+        logId: userData.id,
+        message: "🚨 ความเสี่ยงสูง ระงับการเข้าถึงชั่วคราว" 
+    });
+}
 
         // 3. คำนวณความเสี่ยง (Risk Scoring)
         let score = 0.1;
