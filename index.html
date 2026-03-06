@@ -3,17 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Secure System</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Secure Login</title>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: #1e293b; padding: 2rem; border-radius: 1rem; width: 320px; box-shadow: 0 10px 15px rgba(0,0,0,0.3); }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        .btn-primary { width: 100%; padding: 10px; background: #3b82f6; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .status-box { padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; display: none; }
+        .remember-container { margin: 10px 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #94a3b8; cursor: pointer; }
+    </style>
 </head>
 <body>
     <div class="login-card">
         <h2>เข้าสู่ระบบ</h2>
         <div id="status-box" class="status-box"></div>
-        <input type="text" id="username" placeholder="Username (English)">
-        <input type="password" id="password" placeholder="Password">
+        <input type="text" id="username" placeholder="ชื่อผู้ใช้">
+        <input type="password" id="password" placeholder="รหัสผ่าน">
+        <label class="remember-container">
+            <input type="checkbox" id="remember-device" checked> จดจำอุปกรณ์นี้
+        </label>
         <button onclick="preLoginCheck()" class="btn-primary">Login</button>
-        <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
     </div>
     <script src="script.js"></script>
 </body>
