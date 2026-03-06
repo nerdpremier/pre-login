@@ -1,14 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Verification | Identity Check</title>
+    <style>
+        /* CSS ตัวท็อป: Cyber Dark Luxury */
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --primary: #3b82f6;
+            --bg-dark: #020617;
+            --card-bg: rgba(15, 23, 42, 0.85);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at 50% -20%, #1e293b, var(--bg-dark));
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; color: var(--text-main);
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            width: 100%; max-width: 420px;
+            padding: 3.5rem 2.5rem;
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.75rem; color: #fff; }
+        .subtitle { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 2.5rem; line-height: 1.6; }
+
+        .input-group { text-align: left; margin-bottom: 2rem; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-dim); text-align: center; }
+
+        #mfa-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            color: var(--primary);
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        #mfa-input:focus {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        button {
+            width: 100%; padding: 18px; border-radius: 18px; border: none;
+            background: var(--primary); color: white; font-weight: 700; font-size: 1rem;
+            cursor: pointer; transition: 0.3s;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+        }
+
+        button:hover { transform: translateY(-2px); background: #2563eb; box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5); }
+
+        .status-box { display: none; padding: 14px; border-radius: 14px; margin-bottom: 1.5rem; font-size: 0.9rem; font-weight: 600; text-align: center; }
+
+        .footer { margin-top: 2.5rem; font-size: 0.9rem; color: var(--text-dim); }
+        .footer a { color: var(--primary); text-decoration: none; font-weight: 700; }
+    </style>
+</head>
+<body>
+
 <div class="login-card">
-    <div style="font-size: 3.5rem; margin-bottom: 1.5rem; filter: drop-shadow(0 0 10px var(--primary));">🛡️</div>
+    <div style="font-size: 4rem; margin-bottom: 1.5rem; filter: drop-shadow(0 0 15px var(--primary));">🛡️</div>
     <h2>Verify It's You</h2>
     <p class="subtitle">A 6-digit verification code has been sent to your registered email. It expires in 10 minutes.</p>
     
     <div id="status-box" class="status-box"></div>
 
     <div class="input-group">
-        <label style="text-align: center;">Verification Code</label>
+        <label>Enter 6-Digit Code</label>
         <input type="text" id="mfa-input" placeholder="000 000" maxlength="6" 
-               style="text-align:center; letter-spacing: 12px; font-size: 1.5rem; font-weight: 700; padding: 18px;">
+               style="text-align:center; letter-spacing: 12px; font-size: 1.8rem; font-weight: 700; padding: 20px;">
     </div>
 
     <button onclick="verifyMFA()">Verify & Unlock Access</button>
@@ -17,3 +98,37 @@
         Didn't receive a code? <a href="#" onclick="location.reload()">Resend Email</a>
     </div>
 </div>
+
+<script>
+    // ฟังก์ชันตรวจสอบรหัส (ดึง logId จาก URL มาเทียบ)
+    async function verifyMFA() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const logId = urlParams.get('logId');
+        const code = document.getElementById('mfa-input').value.trim();
+        const box = document.getElementById('status-box');
+
+        if (code.length < 6) {
+            box.style.display = 'block'; box.innerText = "Please enter 6 digits.";
+            box.style.background = 'rgba(239,68,68,0.2)'; box.style.color = '#f87171';
+            return;
+        }
+
+        const res = await fetch('/api/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logId, code })
+        });
+
+        if (res.ok) {
+            box.style.display = 'block'; box.innerText = "✅ Identity Verified! Access Granted.";
+            box.style.background = 'rgba(34,197,94,0.2)'; box.style.color = '#4ade80';
+            setTimeout(() => window.location.href = 'welcome.html', 1500);
+        } else {
+            box.style.display = 'block'; box.innerText = "❌ Invalid or Expired Code.";
+            box.style.background = 'rgba(239,68,68,0.2)'; box.style.color = '#f87171';
+        }
+    }
+</script>
+
+</body>
+</html>
