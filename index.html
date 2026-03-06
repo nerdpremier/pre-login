@@ -13,7 +13,10 @@
         <input type="text" id="username" placeholder="Username (English)">
         <input type="password" id="password" placeholder="Password">
         <div style="text-align: left; margin-bottom: 15px; color: #94a3b8; font-size: 14px;">
-        <input type="checkbox" id="remember-device"> จดจำอุปกรณ์นี้</div>
+        <div style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin-bottom: 20px; color: #94a3b8; font-size: 14px;">
+        <input type="checkbox" id="remember-device" style="width: 16px; height: 16px; cursor: pointer;">
+        <label for="remember-device" style="cursor: pointer;">จดจำอุปกรณ์นี้</label>
+        </div>
         <button onclick="preLoginCheck()" class="btn-primary">Login</button>
         <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
     </div>
