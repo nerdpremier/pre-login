@@ -3,29 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Login</title>
+    <title>Login - Security System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="login-card">
-            <div class="header">
-                <div class="logo">🛡️</div>
-                <h1>Secure Portal</h1>
-                <p>Verify identity & safety</p>
-            </div>
-            <div id="status-box"></div>
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" id="username" placeholder="Username" required>
-            </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="password" placeholder="••••••••" required>
-            </div>
-            <button onclick="preLoginCheck()">Sign In</button>
-            <a href="register.html" class="link-text">Don't have an account? Register</a>
-        </div>
+    <div class="login-card">
+        <h2>เข้าสู่ระบบ</h2>
+        <div id="status-box" style="display:none; padding:10px; border-radius:8px; margin-bottom:15px; font-size:14px;"></div>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="preLoginCheck()" class="btn-primary">Login</button>
+        <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
     </div>
     <script src="script.js"></script>
 </body>

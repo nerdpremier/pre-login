@@ -10,15 +10,19 @@ export default async function handler(req, res) {
         const { username, device, fingerprint } = req.body;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-        // 1. ตรวจสอบ Fingerprint จาก Database
+        // 1. ตรวจสอบว่ามี User หรือไม่ และดึง Fingerprint ที่เคยบันทึกไว้
         const userRes = await client.query("SELECT authorized_fingerprint FROM users WHERE username = $1", [username]);
-        if (userRes.rows.length === 0) return res.status(200).json({ risk_level: "LOW", logId: null });
+        
+        // ถ้าไม่มี User ในระบบ ไม่ต้องบันทึก Log ลง DB (ประหยัดพื้นที่)
+        if (userRes.rows.length === 0) {
+            return res.status(200).json({ risk_level: "LOW", logId: null });
+        }
 
         const savedFp = userRes.rows[0].authorized_fingerprint;
-        // Mismatch จะเป็น true ก็ต่อเมื่อ "เคยมีประวัติเครื่องหลักแล้ว" แต่ "เครื่องปัจจุบันไม่ตรง"
+        // Mismatch = เคยมีประวัติเครื่องหลักแล้ว แต่เครื่องปัจจุบันไม่ตรง
         const fp_mismatch = (savedFp && savedFp !== fingerprint) ? true : false;
 
-        // 2. Cleanup & Find Existing Log (Aggregation)
+        // 2. ลบ Log เก่า 15 นาที และหา Record เดิมเพื่อรวมกลุ่ม (Aggregation)
         await client.query("DELETE FROM login_risks WHERE updated_at < NOW() - INTERVAL '15 minutes'");
         const existing = await client.query(
             "SELECT id, attempts FROM login_risks WHERE username = $1 AND ip_address = $2 AND is_success = FALSE LIMIT 1",
@@ -31,11 +35,11 @@ export default async function handler(req, res) {
             logId = existing.rows[0].id;
         }
 
-        // 3. Risk Calculation (Max 1.0)
-        let score = 0.1; 
+        // 3. คำนวณคะแนน Scale 1.0
+        let score = 0.1;
         if (attempts >= 2 && attempts < 4) score = 0.3;
-        else if (attempts >= 4) score = 0.6; // เพดาน Attempts 0.6
-        if (fp_mismatch) score += 0.4; // ถ้าเปลี่ยนเครื่อง +0.4
+        else if (attempts >= 4) score = 0.6; 
+        if (fp_mismatch) score += 0.4;
 
         const finalScore = Math.min(score, 1.0);
         const level = finalScore >= 0.7 ? "HIGH" : (finalScore >= 0.4 ? "MEDIUM" : "LOW");

@@ -3,28 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account</title>
+    <title>Register - Security System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="login-card">
-            <div class="header">
-                <h1>Create Account</h1>
-                <p>Join our secure network</p>
-            </div>
-            <div id="status-box"></div>
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" id="username" placeholder="Choose a username" required>
-            </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="password" placeholder="Create a password" required>
-            </div>
-            <button onclick="handleRegister()">Register</button>
-            <a href="index.html" class="link-text">Already have an account? Login</a>
-        </div>
+    <div class="login-card">
+        <h2>สมัครสมาชิก</h2>
+        <div id="status-box" style="display:none; padding:10px; border-radius:8px; margin-bottom:15px; font-size:14px;"></div>
+        <input type="text" id="username" placeholder="สร้าง Username">
+        <input type="password" id="password" placeholder="สร้าง Password">
+        <button onclick="handleRegister()" class="btn-primary">สมัครสมาชิก</button>
+        <p><a href="index.html">กลับไปหน้าล็อกอิน</a></p>
     </div>
     <script src="script.js"></script>
 </body>
