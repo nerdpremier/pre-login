@@ -11,6 +11,6 @@ export default async function handler(req, res) {
         await client.connect();
         await client.query("UPDATE login_risks SET is_success = $1, updated_at = NOW() WHERE id = $2", [success, logId]);
         res.status(200).json({ success: true });
-    } catch (err) { res.status(500).json({ error: "Log Update failed" }); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
     finally { await client.end(); }
 }

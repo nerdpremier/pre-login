@@ -4,7 +4,7 @@ const { Client } = pkg;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send();
-    const { action, username, password } = req.body;
+    const { action, username, password, fingerprint } = req.body;
 
     const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
     try {
@@ -16,11 +16,17 @@ export default async function handler(req, res) {
         } else {
             const user = await client.query("SELECT * FROM users WHERE username = $1", [username]);
             if (user.rows.length > 0 && await bcrypt.compare(password, user.rows[0].password_hash)) {
+                
+                // ถ้า Login สำเร็จ และ User นี้ยังไม่มีลายนิ้วมือที่จดจำไว้ ให้บันทึกเครื่องนี้ทันที
+                if (!user.rows[0].authorized_fingerprint) {
+                    await client.query("UPDATE users SET authorized_fingerprint = $1 WHERE username = $2", [fingerprint, username]);
+                }
+                
                 res.status(200).json({ success: true, user: user.rows[0].username });
             } else {
-                res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านผิด" });
+                res.status(401).json({ error: "Invalid credentials" });
             }
         }
-    } catch (err) { res.status(500).json({ error: "Authentication system error" }); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
     finally { await client.end(); }
 }
