@@ -14,7 +14,8 @@ export default async function handler(req, res) {
         if (userRes.rows.length === 0) return res.status(200).json({ risk_level: "LOW", logId: null });
 
         const savedFp = userRes.rows[0].authorized_fingerprint;
-        const fp_match = savedFp ? (savedFp === fingerprint) : true;
+        // เทียบ FP (ตอนนี้ Hardware อยู่ข้างหน้า ดังนั้นถ้าต่างกันจะ Mismatch ทันที)
+        const fp_mismatch = (savedFp && savedFp !== fingerprint) ? true : false;
 
         await client.query("DELETE FROM login_risks WHERE updated_at < NOW() - INTERVAL '15 minutes'");
         const existing = await client.query(
@@ -31,21 +32,21 @@ export default async function handler(req, res) {
         let score = 0.1;
         if (attempts >= 2 && attempts < 4) score = 0.3;
         else if (attempts >= 4) score = 0.6;
-        if (fp_match === false) score += 0.4;
+        if (fp_mismatch) score += 0.4; // เครื่องแปลกบวก 0.4
 
         const finalScore = Math.min(score, 1.0);
         const level = finalScore >= 0.7 ? "HIGH" : (finalScore >= 0.4 ? "MEDIUM" : "LOW");
 
         if (logId) {
             await client.query(
-                "UPDATE login_risks SET attempts = $1, risk_score = $2, risk_level = $3, fingerprint_match = $4, current_fingerprint = $5, updated_at = NOW() WHERE id = $6",
-                [attempts, finalScore, level, fp_match, fingerprint, logId]
+                "UPDATE login_risks SET attempts = $1, risk_score = $2, risk_level = $3, fingerprint_mismatch = $4, current_fingerprint = $5, updated_at = NOW() WHERE id = $6",
+                [attempts, finalScore, level, fp_mismatch, fingerprint, logId]
             );
         } else {
             const result = await client.query(
-                `INSERT INTO login_risks (username, ip_address, device_info, current_fingerprint, fingerprint_match, attempts, risk_score, risk_level) 
+                `INSERT INTO login_risks (username, ip_address, device_info, current_fingerprint, fingerprint_mismatch, attempts, risk_score, risk_level) 
                  VALUES ($1, $2, $3, $4, $5, 1, $6, $7) RETURNING id`,
-                [username, ip, device, fingerprint, fp_match, finalScore, level]
+                [username, ip, device, fingerprint, fp_mismatch, finalScore, level]
             );
             logId = result.rows[0].id;
         }
