@@ -2,17 +2,34 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Security System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - Security System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="login-card">
-        <h2>เข้าสู่ระบบ</h2>
-        <div id="status-box" class="status-box"></div>
-        <input type="text" id="username" placeholder="Username" autocomplete="username">
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-        <button onclick="preLoginCheck()" class="btn-primary">Login</button>
-        <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
+    <div class="container">
+        <div class="login-card">
+            <h2>ยินดีต้อนรับ</h2>
+            <p class="subtitle">กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+            
+            <div id="status-box" class="status-box"></div>
+
+            <div class="input-group">
+                <label for="username">ชื่อผู้ใช้งาน</label>
+                <input type="text" id="username" placeholder="ใส่ชื่อผู้ใช้ของคุณ" required>
+            </div>
+
+            <div class="input-group">
+                <label for="password">รหัสผ่าน</label>
+                <input type="password" id="password" placeholder="ใส่รหัสผ่าน" required>
+            </div>
+
+            <button onclick="preLoginCheck()" class="btn-primary">เข้าสู่ระบบ</button>
+            
+            <p class="footer-text">
+                ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิกที่นี่</a>
+            </p>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
