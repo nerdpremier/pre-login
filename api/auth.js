@@ -16,6 +16,7 @@ export default async function handler(req, res) {
         } else {
             const user = await client.query("SELECT * FROM users WHERE username = $1", [username]);
             if (user.rows.length > 0 && await bcrypt.compare(password, user.rows[0].password_hash)) {
+                // บันทึกเครื่องหลักถ้าเป็นเครื่องแรกที่ Login สำเร็จ
                 if (!user.rows[0].authorized_fingerprint && fingerprint) {
                     await client.query("UPDATE users SET authorized_fingerprint = $1 WHERE username = $2", [fingerprint, username]);
                 }
