@@ -101,3 +101,63 @@ async function handleRegister() {
         }
     } catch (e) { updateStatus('danger', "❌ ไม่สามารถสมัครสมาชิกได้"); }
 }
+
+// ฟังก์ชันตรวจสอบความปลอดภัย (เพิ่มเข้าไปใน script.js)
+function validateInputs(username, password) {
+    // 1. ตรวจสอบ Username: ภาษาอังกฤษและตัวเลขเท่านั้น (A-Z, a-z, 0-9)
+    const userRegex = /^[a-zA-Z0-9]+$/;
+    if (!userRegex.test(username)) {
+        return "Username ต้องเป็นภาษาอังกฤษและตัวเลขเท่านั้น";
+    }
+
+    // 2. ตรวจสอบ Password มาตรฐานความปลอดภัย:
+    // อย่างน้อย 8 ตัว, มีพิมพ์ใหญ่, พิมพ์เล็ก, ตัวเลข และอักขระพิเศษ (@$!%*?&)
+    const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passRegex.test(password)) {
+        return "รหัสผ่านต้องมี 8 ตัวขึ้นไป, มีพิมพ์ใหญ่, พิมพ์เล็ก, ตัวเลข และสัญลักษณ์ (@$!%*?&)";
+    }
+    return null; // ผ่านการตรวจสอบ
+}
+
+// แก้ไขฟังก์ชัน handleRegister
+async function handleRegister() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    
+    // เรียกใช้ตัวตรวจสอบ
+    const error = validateInputs(username, password);
+    if (error) return updateStatus('danger', `⚠️ ${error}`);
+
+    updateStatus('loading', "⏳ กำลังสร้างบัญชี...");
+    // ... โค้ด fetch /api/auth เดิมของคุณ ...
+}
+
+// แก้ไขฟังก์ชัน preLoginCheck
+async function preLoginCheck() {
+    // ... (ส่วนดึงค่า username, password, fingerprint เหมือนเดิม) ...
+    
+    try {
+        const riskRes = await fetch('/api/assess', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, device, fingerprint })
+        });
+        const { risk_level, logId } = await riskRes.json();
+
+        if (risk_level === "HIGH") {
+            return updateStatus('danger', "🚨 ระงับการเข้าถึงเนื่องจากความเสี่ยงสูง");
+        } 
+        
+        // เพิ่มส่วนนี้: ถ้าเป็น MEDIUM ให้ไปหน้า MFA
+        if (risk_level === "MEDIUM") {
+            updateStatus('success', "🛡️ ตรวจพบอุปกรณ์ใหม่ กรุณายืนยันรหัสผ่านทางอีเมล...");
+            setTimeout(() => {
+                window.location.href = `mfa.html?logId=${logId}&username=${username}`;
+            }, 1500);
+            return;
+        }
+
+        // ถ้าเป็น LOW ให้ล็อกอินปกติ
+        // ... (โค้ด fetch /api/auth และ update-risk เดิมของคุณ) ...
+    } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
+}

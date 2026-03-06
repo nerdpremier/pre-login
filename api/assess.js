@@ -61,3 +61,31 @@ export default async function handler(req, res) {
     } catch (err) { res.status(500).json({ error: err.message }); }
     finally { await client.end(); }
 }
+
+// ในไฟล์ api/assess.js (ส่วนที่มีการคำนวณ finalScore)
+
+const finalScore = Math.min(score, 1.0);
+const level = finalScore >= 0.7 ? "HIGH" : (finalScore >= 0.4 ? "MEDIUM" : "LOW");
+
+let mfaCode = null;
+if (level === "MEDIUM") {
+    // สร้างรหัส 6 หลัก
+    mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // ตรงนี้คุณต้องเพิ่มโค้ดส่งเมล (Nodemailer) ไปยังอีเมลของผู้ใช้
+    // ตัวอย่าง: await sendMFAMail(userEmail, mfaCode);
+}
+
+// แก้ไขคำสั่ง SQL เพื่อบันทึก mfa_code
+if (logId) {
+    await client.query(
+        "UPDATE login_risks SET attempts = $1, risk_score = $2, risk_level = $3, mfa_code = $4, ... WHERE id = $5",
+        [attempts, finalScore, level, mfaCode, logId]
+    );
+} else {
+    const result = await client.query(
+        `INSERT INTO login_risks (..., risk_level, mfa_code) VALUES (..., $1, $2) RETURNING id`,
+        [level, mfaCode]
+    );
+    logId = result.rows[0].id;
+}

@@ -1,0 +1,26 @@
+<div class="login-card">
+    <h2>ยืนยันตัวตน (MFA)</h2>
+    <p>กรุณากรอกรหัส 6 หลักที่ส่งไปทางอีเมล</p>
+    <input type="text" id="mfa-code" maxlength="6" placeholder="000000">
+    <button onclick="verifyMFA()" class="btn-primary">ยืนยันรหัส</button>
+</div>
+
+<script>
+async function verifyMFA() {
+    const code = document.getElementById('mfa-code').value;
+    const urlParams = new URLSearchParams(window.location.search);
+    const logId = urlParams.get('logId');
+
+    const res = await fetch('/api/verify-mfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId, code })
+    });
+
+    if (res.ok) {
+        window.location.href = 'welcome.html';
+    } else {
+        alert("รหัสไม่ถูกต้อง");
+    }
+}
+</script>
