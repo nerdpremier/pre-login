@@ -1,5 +1,5 @@
 import pkg from 'pg';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 
 const { Client } = pkg;
