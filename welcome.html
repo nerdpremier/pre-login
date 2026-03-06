@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8"><title>Dashboard | Secure Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-card" style="text-align: center;">
+            <div style="font-size: 3rem;">🎉</div>
+            <h1 id="user-display">Welcome!</h1>
+            <p style="color:var(--text-dim);">คุณเข้าสู่ระบบสำเร็จผ่านการตรวจสอบความเสี่ยงแล้ว</p>
+            <button onclick="logout()" style="margin-top:20px; background:#334155;">Logout</button>
+        </div>
+    </div>
+    <script>
+        const user = localStorage.getItem('logged_in_user');
+        if (!user) window.location.href = 'index.html';
+        document.getElementById('user-display').innerText = `ยินดีต้อนรับ, ${user}`;
+        function logout() { localStorage.removeItem('logged_in_user'); window.location.href = 'index.html'; }
+    </script>
+</body>
+</html>
