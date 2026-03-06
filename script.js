@@ -114,7 +114,10 @@ async function preLoginCheck() {
 // ----------------- ยืนยันรหัส MFA -----------------
 async function verifyMFA() {
     const code = document.getElementById('mfa-code')?.value.trim();
-    const logId = new URLSearchParams(window.location.search).get('logId');
+    const urlParams = new URLSearchParams(window.location.search);
+    const logId = urlParams.get('logId');
+    const remember = urlParams.get('remember'); // ดึงค่า remember ที่ส่งต่อมา
+
     if (!code || !logId) return updateStatus('danger', "⚠️ ข้อมูลไม่ครบถ้วน");
 
     updateStatus('loading', "⏳ กำลังตรวจสอบรหัส...");
@@ -122,24 +125,21 @@ async function verifyMFA() {
         const res = await fetch('/api/verify-mfa', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logId, code })
+            body: JSON.stringify({ 
+                logId, 
+                code, 
+                remember: remember === 'true' // ส่งค่า boolean ไปให้หลังบ้าน
+            })
         });
+        
         if (res.ok) {
             updateStatus('success', "✅ ยืนยันตัวตนสำเร็จ!");
             setTimeout(() => window.location.href = 'welcome.html', 1000);
         } else {
-            updateStatus('danger', "❌ รหัสไม่ถูกต้อง");
+            const data = await res.json();
+            updateStatus('danger', `❌ ${data.error || "รหัสไม่ถูกต้อง"}`);
         }
-    } catch (e) { updateStatus('danger', "❌ ระบบขัดข้อง"); }
-}
-
-document.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        const mfaInput = document.getElementById('mfa-code');
-        if (mfaInput) {
-            verifyMFA();
-        } else {
-            preLoginCheck();
-        }
+    } catch (e) { 
+        updateStatus('danger', "❌ ระบบขัดข้อง"); 
     }
-});
+}
