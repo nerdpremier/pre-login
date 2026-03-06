@@ -6,9 +6,7 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send();
     const { action, username, password } = req.body;
 
-    if (!username?.trim() || !password?.trim()) {
-        return res.status(400).json({ error: "กรุณากรอก Username และ Password" });
-    }
+    if (!username?.trim() || !password?.trim()) return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
 
     const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
     try {
@@ -21,13 +19,8 @@ export default async function handler(req, res) {
             const userRes = await client.query("SELECT * FROM users WHERE username = $1", [username]);
             if (userRes.rows.length > 0 && await bcrypt.compare(password, userRes.rows[0].password_hash)) {
                 res.status(200).json({ success: true, user: userRes.rows[0].username });
-            } else {
-                res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านผิด" });
-            }
+            } else res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
         }
-    } catch (err) {
-        res.status(500).json({ error: err.message.includes('unique') ? "ชื่อนี้ถูกใช้ไปแล้ว" : "ระบบขัดข้อง" });
-    } finally {
-        await client.end();
-    }
+    } catch (err) { res.status(500).json({ error: err.message.includes('unique') ? "ชื่อนี้ถูกใช้ไปแล้ว" : "DB Error" }); }
+    finally { await client.end(); }
 }

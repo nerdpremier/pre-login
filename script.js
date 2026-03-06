@@ -2,16 +2,32 @@ function updateStatus(type, msg) {
     const box = document.getElementById('status-box');
     box.style.display = 'block';
     box.innerText = msg;
-    box.className = `status-${type}`; // ใช้ Class เพื่อเปลี่ยนสีตาม CSS
+    box.style.background = type === 'danger' ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)';
+    box.style.color = type === 'danger' ? '#f87171' : '#4ade80';
+}
+
+async function handleRegister() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบทุกช่อง");
+
+    updateStatus('loading', "⏳ กำลังสมัครสมาชิก...");
+    const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'register', username, password })
+    });
+    const data = await res.json();
+    if (res.ok) { alert("สมัครสมาชิกสำเร็จ!"); window.location.href = 'index.html'; }
+    else updateStatus('danger', "❌ " + (data.error || "เกิดข้อผิดพลาด"));
 }
 
 async function preLoginCheck() {
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
-    if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
+    if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบทุกช่อง");
 
-    updateStatus('loading', "🔍 กำลังสแกนความปลอดภัย...");
-
+    updateStatus('loading', "🔍 กำลังวิเคราะห์ความปลอดภัย...");
     try {
         const ipRes = await fetch('https://ipapi.co/json/').then(r => r.json());
         const device = `${navigator.platform} | ${navigator.userAgent}`;
@@ -26,41 +42,18 @@ async function preLoginCheck() {
         });
         const riskData = await riskRes.json();
 
-        if (riskData.risk_level === "HIGH") {
-            return updateStatus('danger', "🚨 พยายามเข้าสู่ระบบมากเกินไป กรุณารอ 15 นาที");
-        }
+        if (riskData.risk_level === "HIGH") return updateStatus('danger', "🚨 เสี่ยงสูงเกินไป! กรุณารอ 15 นาที");
 
         const authRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'login', username, password })
         });
-
+        const authData = await authRes.json();
         if (authRes.ok) {
-            const authData = await authRes.json();
             updateStatus('success', "✅ ยินดีต้อนรับ! กำลังพานำหน้า...");
             localStorage.setItem('logged_in_user', authData.user);
             setTimeout(() => window.location.href = 'welcome.html', 1000);
-        } else {
-            const authData = await authRes.json();
-            updateStatus('danger', "❌ " + authData.error);
-        }
-    } catch (e) {
-        updateStatus('danger', "❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
-    }
-}
-
-// ฟังก์ชันสมัครสมาชิก
-async function handleRegister() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
-    if (!username || !password) return updateStatus('danger', "⚠️ กรุณากรอกให้ครบ");
-
-    const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register', username, password })
-    });
-    if (res.ok) { alert("สมัครสมาชิกสำเร็จ!"); window.location.href = 'index.html'; }
-    else { const data = await res.json(); updateStatus('danger', data.error); }
+        } else updateStatus('danger', "❌ " + authData.error);
+    } catch (e) { updateStatus('danger', "❌ เชื่อมต่อ Server ผิดพลาด"); }
 }
