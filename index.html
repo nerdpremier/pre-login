@@ -2,16 +2,44 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Customer Login - Secure Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Access | Pre-login Risk System</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="login-box">
-        <h2>Customer Login</h2>
-        <div id="status-msg"></div>
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button onclick="preLoginCheck()">Login</button>
+    <div class="container">
+        <div class="login-card">
+            <div class="header">
+                <div class="logo">🛡️</div>
+                <h1>Secure Portal</h1>
+                <p>Adaptive Risk Assessment System</p>
+            </div>
+
+            <div id="status-box" class="status-hidden">
+                <span id="status-icon"></span>
+                <span id="status-msg"></span>
+            </div>
+
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your username">
+            </div>
+
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+
+            <div class="button-group">
+                <button onclick="preLoginCheck()" class="btn-primary">Sign In</button>
+                <button onclick="handleRegister()" class="btn-secondary">Create Account</button>
+            </div>
+
+            <div class="footer">
+                <p>Your IP and Device are being monitored for security.</p>
+            </div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
