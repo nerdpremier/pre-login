@@ -13,19 +13,17 @@ export default async function handler(req, res) {
         await client.connect();
 
         if (action === 'register') {
-    // เพิ่มการเช็คชื่อซ้ำก่อน INSERT
-    const userExist = await client.query("SELECT id FROM users WHERE username = $1 OR email = $2", [username, email]);
-    if (userExist.rows.length > 0) {
-        return res.status(400).json({ error: "ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้ไปแล้ว" });
-    }
+            // 1. เช็คชื่อซ้ำ
+            const userExist = await client.query("SELECT id FROM users WHERE username = $1", [username]);
+            if (userExist.rows.length > 0) return res.status(400).json({ error: "ชื่อนี้ถูกใช้ไปแล้ว" });
 
-    const hashed = await bcrypt.hash(password, 10);
-    await client.query(
-        "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)", 
-        [username, email, hashed]
-    );
-    return res.status(200).json({ success: true });
-} 
+            // 2. Hash และ Save
+            const hashed = await bcrypt.hash(password, 10);
+            await client.query("INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)", [username, email, hashed]);
+
+            // 3. *** สำคัญมาก *** ต้อง return ทันที!
+            return res.status(200).json({ success: true }); 
+        } 
         
         else if (action === 'login') {
             const userRes = await client.query("SELECT * FROM users WHERE username = $1", [username]);
