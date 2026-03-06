@@ -1,36 +1,10 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>สมัครสมาชิก - Security System</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="container">
-        <div class="login-card">
-            <h2>สร้างบัญชีใหม่</h2>
-            <p class="subtitle">สมัครสมาชิกเพื่อเริ่มต้นใช้งานระบบ</p>
-            
-            <div id="status-box" class="status-box"></div>
-
-            <div class="input-group">
-                <label for="username">ชื่อผู้ใช้งาน</label>
-                <input type="text" id="username" placeholder="ตั้งชื่อผู้ใช้" required>
-            </div>
-
-            <div class="input-group">
-                <label for="password">รหัสผ่าน</label>
-                <input type="password" id="password" placeholder="ตั้งรหัสผ่าน" required>
-            </div>
-
-            <button onclick="handleRegister()" class="btn-primary">ยืนยันการสมัคร</button>
-            
-            <p class="footer-text">
-                มีบัญชีอยู่แล้ว? <a href="index.html">กลับไปหน้าล็อกอิน</a>
-            </p>
-        </div>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>
+<div class="login-card">
+    <h2>Create Account</h2>
+    <p class="subtitle">Use English characters for security</p>
+    <div id="status-box" class="status-box"></div>
+    <input type="text" id="username" placeholder="Username (English Only)">
+    <input type="email" id="email" placeholder="Email (for MFA)">
+    <input type="password" id="password" placeholder="Strong Password">
+    <button onclick="handleRegister()">Register</button>
+    <div class="footer">Back to <a href="index.html">Login</a></div>
+</div>

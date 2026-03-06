@@ -1,0 +1,23 @@
+<div class="login-card">
+    <h2>🛡️ Verify Device</h2>
+    <p class="subtitle">Enter the 6-digit code sent to your email.</p>
+    <div id="status-box" class="status-box"></div>
+    <input type="text" id="mfa-input" placeholder="000000" maxlength="6">
+    <button onclick="verifyMFA()">Verify & Login</button>
+</div>
+<script src="script.js"></script>
+<script>
+async function verifyMFA() {
+    const code = document.getElementById('mfa-input').value;
+    const logId = new URLSearchParams(window.location.search).get('logId');
+    if (!code || !logId) return;
+    
+    const res = await fetch('/api/verify-mfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId, code })
+    });
+    if (res.ok) { window.location.href = 'welcome.html'; } 
+    else { updateStatus('danger', "Invalid Code!"); }
+}
+</script>
