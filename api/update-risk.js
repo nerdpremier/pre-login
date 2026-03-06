@@ -4,7 +4,7 @@ const { Client } = pkg;
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send();
     const { logId, success } = req.body;
-    if (!logId) return res.status(200).json({ success: true }); // ข้ามถ้าเป็น User ไม่มีตัวตน
+    if (!logId) return res.status(200).json({ success: true });
 
     const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
     try {

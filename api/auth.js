@@ -5,7 +5,6 @@ const { Client } = pkg;
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send();
     const { action, username, password } = req.body;
-    if (!username?.trim() || !password?.trim()) return res.status(400).json({ error: "ข้อมูลไม่ครบ" });
 
     const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
     try {
@@ -15,12 +14,13 @@ export default async function handler(req, res) {
             await client.query("INSERT INTO users (username, password_hash) VALUES ($1, $2)", [username, hashed]);
             res.status(200).json({ success: true });
         } else {
-            // Prepared Statement สำหรับล็อกอิน
             const user = await client.query("SELECT * FROM users WHERE username = $1", [username]);
             if (user.rows.length > 0 && await bcrypt.compare(password, user.rows[0].password_hash)) {
                 res.status(200).json({ success: true, user: user.rows[0].username });
-            } else res.status(401).json({ error: "Username หรือ Password ไม่ถูกต้อง" });
+            } else {
+                res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านผิด" });
+            }
         }
-    } catch (err) { res.status(500).json({ error: "Database error" }); }
+    } catch (err) { res.status(500).json({ error: "Auth failed" }); }
     finally { await client.end(); }
 }
